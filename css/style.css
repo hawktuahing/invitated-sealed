@@ -16,7 +16,7 @@
   --font-serif: "Abhaya Libre", Georgia, "Times New Roman", serif;
   --font-sans: "Manrope", system-ui, -apple-system, sans-serif;
 
-  /* Every section in the mock is one 393×852 phone screen. */
+  /* Every section in the mock is one 393×852 phone screen; positions below are in those pixels. */
   --screen-w: 393px;
   --screen-h: 852px;
 }
@@ -67,42 +67,23 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .t-body   { font-size: 20px; line-height: 24px; letter-spacing: -0.01em; }
 .t-small  { font-size: 16px; line-height: 20px; letter-spacing: -0.01em; }
 
-/* ---------- Placeholders (swap for real images later) ---------- */
-.ph {
-  --ph-a: rgba(23, 60, 53, 0.1);
-  --ph-b: rgba(23, 60, 53, 0.03);
-  --ph-text: var(--ink);
-  --ph-tag: rgba(255, 255, 255, 0.75);
-  position: relative;
-  display: grid;
-  place-items: center;
-  background: repeating-linear-gradient(135deg, var(--ph-a) 0 12px, var(--ph-b) 12px 24px);
-  box-shadow: inset 0 0 0 1px var(--ph-a);
-}
-.ph::after {
-  content: attr(data-label);
-  max-width: 90%;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: var(--ph-tag);
-  color: var(--ph-text);
-  font: 400 11px/1.3 var(--font-sans);
-  letter-spacing: 0;
-  text-align: center;
-}
-.ph--dark {
-  --ph-a: rgba(255, 255, 255, 0.1);
-  --ph-b: rgba(255, 255, 255, 0.03);
-  --ph-text: #fff;
-  --ph-tag: rgba(0, 0, 0, 0.45);
-}
-.ph--bg { position: absolute; inset: 0; z-index: -2; }
-.ph--bg::after { position: absolute; left: 12px; bottom: 12px; max-width: 45%; text-align: left; }
-.ph--label-top::after { top: 12px; bottom: auto; }
-.ph--round { border-radius: 50%; }
-.ph--quiet { background: none; box-shadow: none; outline: 1px dashed rgba(23, 60, 53, 0.35); outline-offset: -1px; }
-
 /* ---------- Shared pieces ---------- */
+
+/* Full-height background that bleeds past the column like the 479px-wide art in the mock. */
+.bg {
+  position: absolute;
+  z-index: -2;
+  top: 0;
+  left: 50%;
+  height: 100%;
+  aspect-ratio: 479.5 / 852;
+  min-width: 100%;
+  max-width: none;
+  transform: translateX(calc(-50% + var(--dx, 0px)));
+  object-fit: cover;
+  pointer-events: none;
+}
+
 .shade {
   position: absolute;
   inset: 0;
@@ -156,32 +137,38 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .btn img { width: 20px; height: 20px; }
 .btn--dark { width: 100%; background: var(--green); }
 
-/* Bottom fade that melts illustrations into the cream background. */
+/* Frosted strip that melts illustrations into the cream background. */
 .fade {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   background: linear-gradient(180deg, rgba(226, 217, 200, 0), var(--cream));
-  -webkit-mask-image: linear-gradient(180deg, transparent, #000 40%);
-  mask-image: linear-gradient(180deg, transparent, #000 40%);
 }
 
 /* ---------- 1. Envelope ---------- */
-.envelope {
-  display: grid;
-  place-items: center;
-  background: var(--paper);
-}
+.envelope { background: var(--paper); }
 .envelope__open {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 30px;
-  padding-top: 54px; /* balances the hint so the seal sits dead centre */
+  position: absolute;
+  inset: 0;
+  width: 100%;
 }
-.envelope__seal { width: 157px; height: 157px; }
-.envelope__hint { color: #8a8a84; }
+.envelope__seal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 157px;
+  height: 157px;
+  transform: translate(-50%, -50%);
+}
+.envelope__hint {
+  position: absolute;
+  top: calc(50% + 108px);
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
 
 /* ---------- 2. Cover ---------- */
 .cover {
@@ -189,6 +176,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   place-items: center;
   background: #3d4136;
 }
+.cover__bg { --dx: 5.95px; }
 
 .topbar {
   position: absolute;
@@ -245,39 +233,81 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .welcome {
   display: grid;
   place-items: center;
-  background: #4a4838;
+  background: #3a3a2e;
+}
+.welcome__media {
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  width: 506.183px;
+  height: 899.404px;
+  transform: translate(calc(-50% + 0.59px), -50%);
+}
+.welcome__media img { width: 100%; height: 100%; max-width: none; }
+.welcome__media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.36) 0%, rgba(0, 0, 0, 0.67) 60.1%, rgba(0, 0, 0, 0.72) 100%);
 }
 .welcome__card { width: 266px; padding: 24px; }
 .welcome__title { color: var(--cream); line-height: 50px; white-space: nowrap; }
 
 /* ---------- 4. Wedding date ---------- */
-.date {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 160px;
-  background: var(--cream);
-}
-.date__confetti { opacity: 0.7; }
+.date { background: var(--cream); }
 
-.scratch {
-  position: relative;
-  width: 253px;
-  height: 254px;
-  margin-top: 70px;
-}
-.scratch__outline {
+.date__frame,
+.date__confetti {
   position: absolute;
-  left: 0;
-  top: 16px;
-  width: 253px;
-  height: 238px;
+  top: 0;
+  left: 50%;
+  height: 852px;
+  max-width: none;
+  transform: translateX(-50%);
 }
-.scratch__outline::after { align-self: end; margin-bottom: 12px; }
-.scratch__date {
+.date__frame { width: 426px; object-fit: cover; }
+.date__confetti { width: 479.505px; opacity: 0.7; }
+
+.date__hint {
+  position: absolute;
+  top: 700px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--ink-soft);
+  text-align: center;
+  white-space: nowrap;
+}
+.date__heading {
+  position: absolute;
+  top: 160px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.date__heart,
+.date__outline {
   position: absolute;
   left: 50%;
-  top: 88px;
+  overflow: hidden;
+  transform: translateX(-50%);
+}
+.date__heart img,
+.date__outline img {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  max-width: none;
+}
+.date__heart { top: 346px; width: 252px; height: 252px; }
+.date__heart img { left: -3.63%; width: 107.27%; }
+.date__outline { top: 362px; width: 253px; height: 238px; pointer-events: none; }
+.date__outline img { left: -6.06%; width: 112.12%; }
+
+.date__when {
+  position: absolute;
+  top: 433.5px;
+  left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
@@ -287,26 +317,22 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   text-align: center;
   white-space: nowrap;
 }
-.scratch__date .t-lead { font-weight: 700; }
-.scratch__cover {
+.date__when .t-lead { font-weight: 700; }
+
+.date__calendar {
   position: absolute;
+  top: 659px;
   left: 50%;
-  top: 0;
-  width: 252px;
-  height: 252px;
   transform: translateX(-50%);
 }
 
-.date__hint { margin-top: 100px; color: var(--ink-soft); text-align: center; }
-.date__calendar { margin-top: 59px; }
-
 /* Before / after scratching */
 .date:not(.is-revealed) .date__confetti,
-.date:not(.is-revealed) .date__calendar { display: none; }
-.date:not(.is-revealed) .scratch__result { visibility: hidden; }
+.date:not(.is-revealed) .date__when,
+.date:not(.is-revealed) .date__calendar,
 .date.is-revealed .date__frame,
 .date.is-revealed .date__hint,
-.date.is-revealed .scratch__cover { display: none; }
+.date.is-revealed .date__heart { display: none; }
 
 /* ---------- 5. Program ---------- */
 .program {
@@ -326,7 +352,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   left: 50%;
   width: 121px;
   height: 600px;
-  transform: translateX(-50%);
+  max-width: none;
+  object-fit: cover;
+  transform: translateX(-50%) scaleX(-1);
 }
 
 .program__dot {
@@ -372,19 +400,20 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   color: var(--ink);
   text-align: center;
 }
-.location__art {
+.location__hall {
   position: absolute;
   top: 320px;
   left: 50%;
   width: 360px;
-  max-width: calc(100% - 16px);
   height: 240px;
+  max-width: none;
+  object-fit: cover;
   transform: translateX(-50%);
 }
 .location__fade {
-  top: 520px;
-  -webkit-backdrop-filter: blur(5px);
-  backdrop-filter: blur(5px);
+  top: 520.4px;
+  -webkit-backdrop-filter: blur(5.05px);
+  backdrop-filter: blur(5.05px);
 }
 .location__cta {
   position: absolute;
@@ -404,15 +433,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* ---------- 7. Dress code ---------- */
 .dress { background: var(--cream); }
-.dress__column {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  opacity: 0.4;
-}
-.dress__column--left { left: -62px; width: 144px; }
-.dress__column--right { right: -59px; width: 140px; }
-.dress__column::after { writing-mode: vertical-rl; }
 
 .dress__body {
   position: relative;
@@ -430,18 +450,42 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* The SVG carries the swatch shadows, so it is larger than the 208×40 row. */
 .dress__palette { width: 228px; height: 60px; max-width: none; margin: -6px -10px -14px; }
 
+/* Both columns are crops of one arch image. */
+.dress__column {
+  position: absolute;
+  top: 0;
+  height: 852px;
+  overflow: hidden;
+  opacity: 0.4;
+}
+.dress__column img { position: absolute; top: 0; height: 101.26%; max-width: none; }
+.dress__column--left { left: -62px; width: 144px; }
+.dress__column--left img { left: 6.65%; width: 341.86%; }
+.dress__column--right { right: -59px; width: 140px; }
+.dress__column--right img { left: -271.26%; width: 368.85%; }
+
 .dress__fade {
-  top: 740px;
+  top: 740.4px;
   -webkit-backdrop-filter: blur(2.5px);
   backdrop-filter: blur(2.5px);
 }
-.dress__art {
+
+.dress__guests {
   position: absolute;
   top: 560px;
   left: calc(50% + 7px);
   width: 317px;
   height: 250px;
+  overflow: hidden;
   transform: translateX(-50%);
+}
+.dress__guests img {
+  position: absolute;
+  top: -3.42%;
+  left: -19.07%;
+  width: 123.73%;
+  height: 105.03%;
+  max-width: none;
 }
 
 /* ---------- 8. RSVP ---------- */
@@ -469,6 +513,20 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   border-radius: 28px;
   overflow: hidden;
   background: var(--paper);
+}
+.rsvp__paper {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+.rsvp__paper img {
+  position: absolute;
+  top: 0;
+  left: -9.04%;
+  width: 118.09%;
+  height: 103.95%;
+  max-width: none;
 }
 .rsvp__form { display: flex; flex-direction: column; gap: 20px; }
 
@@ -528,8 +586,29 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   color: #fff;
   text-align: center;
 }
-.closing__shade {
-  background: linear-gradient(180deg, var(--green) 0%, rgba(21, 41, 38, 0.3) 30.2%, rgba(21, 41, 38, 0.3) 100%);
+.closing__media {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 50%;
+  width: 479px;
+  height: 852px;
+  overflow: hidden;
+  transform: translateX(-50%);
+}
+.closing__media img {
+  position: absolute;
+  top: 0;
+  left: -7.75%;
+  width: 118.58%;
+  height: 100%;
+  max-width: none;
+}
+.closing__media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--green) 0%, rgba(21, 41, 38, 0.3) 30.22%, rgba(21, 41, 38, 0.3) 100%);
 }
 .closing__text { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .closing__names { color: var(--cream); white-space: nowrap; }

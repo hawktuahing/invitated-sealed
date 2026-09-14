@@ -16,7 +16,7 @@ envelope.querySelector('.envelope__open').addEventListener('click', async () => 
 
 // Scratch card: a tap reveals the date for now; canvas scratching comes later.
 const date = document.getElementById('date');
-date.querySelector('.scratch__cover').addEventListener('click', () => {
+date.querySelector('.date__heart').addEventListener('click', () => {
   date.classList.add('is-revealed');
 });
 

@@ -15,16 +15,16 @@
 
     <!-- 1. Envelope -->
     <section class="screen screen--full envelope" id="envelope">
-      <div class="ph ph--bg" data-label="Фон: бумага конверта + ветки"></div>
-      <button class="envelope__open" type="button">
-        <span class="ph ph--round envelope__seal" data-label="Сургучная печать"></span>
+      <img class="bg envelope__paper" src="assets/img/envelope-paper.jpg" alt="" fetchpriority="high">
+      <button class="envelope__open" type="button" aria-label="Open the invitation">
+        <img class="envelope__seal" src="assets/img/envelope-seal.png" alt="" width="157" height="157">
         <span class="envelope__hint t-body">Click to open</span>
       </button>
     </section>
 
     <!-- 2. Cover -->
     <section class="screen screen--full cover" id="cover">
-      <div class="ph ph--bg ph--dark" data-label="Фон: арка / двери / аллея"></div>
+      <img class="bg cover__bg" src="assets/img/cover-bg.jpg" alt="">
       <div class="shade"></div>
 
       <header class="topbar">
@@ -63,49 +63,53 @@
 
     <!-- 3. Welcome -->
     <section class="screen welcome" id="welcome">
-      <div class="ph ph--bg ph--dark" data-label="Фон: аллея на закате"></div>
-      <div class="shade"></div>
+      <div class="welcome__media">
+        <img src="assets/img/welcome-bg.jpg" alt="" loading="lazy">
+      </div>
 
       <div class="glass welcome__card">
         <img class="ornament" src="assets/decor/ornament.png" alt="">
         <h2 class="t-script welcome__title">Dear guest,</h2>
-        <p class="t-body">We are delighted to invite you to share one of the most important days of our lives with us. Your presence will make this day truly special.</p>
+        <p class="t-body">We are delighted to invite you to share one of the most important days<br>of our lives with us.<br>Your presence will make this day truly special.</p>
         <img class="ornament ornament--flip" src="assets/decor/ornament.png" alt="">
       </div>
     </section>
 
     <!-- 4. Wedding date -->
     <section class="screen date" id="date">
-      <div class="ph ph--bg date__frame" data-label="Фон: цветочная рамка"></div>
-      <div class="ph ph--bg date__confetti" data-label="Фон: конфетти"></div>
+      <img class="date__frame" src="assets/img/date-frame.png" alt="" loading="lazy">
+      <img class="date__confetti" src="assets/img/date-confetti.png" alt="" loading="lazy">
 
-      <header class="heading">
+      <p class="t-time date__hint">Scratch<br>to reveal</p>
+
+      <header class="heading date__heading">
         <p class="t-body">Wedding date</p>
         <h2 class="t-script">When?</h2>
       </header>
 
-      <div class="scratch">
-        <div class="scratch__result">
-          <span class="ph ph--quiet scratch__outline" data-label="Контур сердца"></span>
-          <div class="scratch__date">
-            <p class="t-lead">October 16, 2026</p>
-            <p class="t-body">Friday<br>15:00</p>
-          </div>
-        </div>
-        <button class="ph scratch__cover" type="button" data-label="Сердце для стирания" aria-label="Reveal the date"></button>
+      <button class="date__heart" type="button" aria-label="Reveal the date">
+        <img src="assets/img/date-heart.png" alt="" loading="lazy">
+      </button>
+
+      <div class="date__when">
+        <p class="t-lead">October 16, 2026</p>
+        <p class="t-body">Friday<br>15:00</p>
       </div>
 
-      <p class="t-time date__hint">Scratch<br>to reveal</p>
       <a class="btn date__calendar" href="#">
         <img src="assets/icons/calendar.svg" alt="" width="20" height="20">
         Calendar
       </a>
+
+      <div class="date__outline" aria-hidden="true">
+        <img src="assets/img/date-outline.png" alt="" loading="lazy">
+      </div>
     </section>
 
     <!-- 5. Program -->
     <section class="screen program" id="program">
       <h2 class="t-script program__title">Program</h2>
-      <div class="ph ph--dark program__vine" data-label="Лиана"></div>
+      <img class="program__vine" src="assets/img/program-vine.png" alt="" loading="lazy">
 
       <div aria-hidden="true">
         <span class="program__dot" style="--y: 310px"><img src="assets/decor/timeline-dot.png" alt=""></span>
@@ -148,7 +152,7 @@
         <p class="t-body">Grand Celebration Hall<br>11th Avenue, New York State</p>
       </div>
 
-      <div class="ph location__art" data-label="Иллюстрация: зал"></div>
+      <img class="location__hall" src="assets/img/location-hall.png" alt="" loading="lazy">
       <div class="fade location__fade"></div>
 
       <a class="btn location__cta" href="https://www.google.com/maps/search/?api=1&amp;query=Grand+Celebration+Hall+11th+Avenue+New+York" target="_blank" rel="noopener">
@@ -160,9 +164,6 @@
 
     <!-- 7. Dress code -->
     <section class="screen dress" id="dress-code">
-      <div class="ph dress__column dress__column--left" data-label="Колонна"></div>
-      <div class="ph dress__column dress__column--right" data-label="Колонна"></div>
-
       <div class="dress__body">
         <header class="heading">
           <p class="t-body">What to wear</p>
@@ -175,8 +176,18 @@
         <img class="dress__palette" src="assets/decor/palette.svg" alt="Palette: sage, beige, dark green, olive">
       </div>
 
+      <div class="dress__column dress__column--left" aria-hidden="true">
+        <img src="assets/img/dress-columns.png" alt="" loading="lazy">
+      </div>
+      <div class="dress__column dress__column--right" aria-hidden="true">
+        <img src="assets/img/dress-columns.png" alt="" loading="lazy">
+      </div>
+
       <div class="fade dress__fade"></div>
-      <div class="ph dress__art" data-label="Иллюстрация: гости"></div>
+
+      <div class="dress__guests" aria-hidden="true">
+        <img src="assets/img/dress-guests.png" alt="" loading="lazy">
+      </div>
     </section>
 
     <!-- 8. RSVP -->
@@ -187,7 +198,9 @@
       </header>
 
       <div class="rsvp__card">
-        <div class="ph ph--bg ph--label-top" data-label="Фон: бумага с листьями"></div>
+        <div class="rsvp__paper" aria-hidden="true">
+          <img src="assets/img/rsvp-paper.jpg" alt="" loading="lazy">
+        </div>
         <form class="rsvp__form">
           <div class="field">
             <label class="t-body field__label" for="rsvp-name">Your first and last name</label>
@@ -218,8 +231,9 @@
 
     <!-- 9. Closing -->
     <section class="screen closing" id="closing">
-      <div class="ph ph--bg ph--dark ph--label-top" data-label="Фото: пара под аркой"></div>
-      <div class="shade closing__shade"></div>
+      <div class="closing__media">
+        <img src="assets/img/closing-photo.jpg" alt="" loading="lazy">
+      </div>
 
       <div class="closing__text">
         <h2 class="t-script closing__names">Oliver &amp; Amelia</h2>
