@@ -41,6 +41,7 @@ a { color: inherit; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 
 .app {
+  position: relative;
   max-width: var(--screen-w);
   margin: 0 auto;
   overflow-x: clip;
@@ -189,20 +190,135 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 
 /* ---------- 1. Envelope ---------- */
-.envelope { background: var(--paper); }
-.envelope__open {
+/* Sits on top of the cover until it has unfolded. */
+.envelope {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  left: 0;
+  right: 0;
+  container-type: size;
+}
+
+/* Darkens the cover where the flaps still hang over it; fades as they leave. */
+.envelope__shade {
   position: absolute;
   inset: 0;
-  width: 100%;
+  background: radial-gradient(120% 80% at 50% 45%, rgba(20, 16, 10, 0.15), rgba(20, 16, 10, 0.55));
 }
-.envelope__seal {
+
+/* The paper photo's own 479.5×852 box, covering the screen whatever its proportions,
+   so the crease percentages below always land on the creases. */
+.envelope__stage {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 157px;
-  height: 157px;
+  width: max(100cqw, 100cqh * 479.5 / 852);
+  height: max(100cqh, 100cqw * 852 / 479.5);
   transform: translate(-50%, -50%);
+  transform-style: preserve-3d;
+  perspective: 1600px;
+  perspective-origin: 50% 45%;
 }
+
+.flap {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.flap__front,
+.flap__back {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.flap__front { object-fit: cover; background: var(--paper); }
+/* The inside of the envelope: plain paper, no print. */
+.flap__back { background: linear-gradient(160deg, #f1ebe0, #dcd2c2); }
+
+/* Crease lines measured off the photo (percent of the 479.5×852 box). Back faces are
+   the same outline mirrored, because they are turned 180° to face the other way. */
+.flap--left { transform-origin: 0 50%; }
+.flap--left .flap__front {
+  -webkit-clip-path: polygon(0 28.9%, 36.6% 46.48%, 0 65.3%);
+  clip-path: polygon(0 28.9%, 36.6% 46.48%, 0 65.3%);
+}
+.flap--left .flap__back {
+  transform: rotateY(180deg);
+  -webkit-clip-path: polygon(100% 28.9%, 63.4% 46.48%, 100% 65.3%);
+  clip-path: polygon(100% 28.9%, 63.4% 46.48%, 100% 65.3%);
+}
+
+.flap--right { transform-origin: 100% 50%; }
+.flap--right .flap__front {
+  -webkit-clip-path: polygon(100% 28.7%, 64% 46.83%, 100% 65.9%);
+  clip-path: polygon(100% 28.7%, 64% 46.83%, 100% 65.9%);
+}
+.flap--right .flap__back {
+  transform: rotateY(180deg);
+  -webkit-clip-path: polygon(0 28.7%, 36% 46.83%, 0 65.9%);
+  clip-path: polygon(0 28.7%, 36% 46.83%, 0 65.9%);
+}
+
+.flap--bottom { transform-origin: 50% 100%; transform: translateZ(1.5px); }
+.flap--bottom .flap__front {
+  -webkit-clip-path: polygon(0 64.79%, 50% 39.3%, 100% 65.38%, 100% 100%, 0 100%);
+  clip-path: polygon(0 64.79%, 50% 39.3%, 100% 65.38%, 100% 100%, 0 100%);
+}
+.flap--bottom .flap__back {
+  transform: rotateX(180deg);
+  -webkit-clip-path: polygon(0 35.21%, 50% 60.7%, 100% 34.62%, 100% 0, 0 0);
+  clip-path: polygon(0 35.21%, 50% 60.7%, 100% 34.62%, 100% 0, 0 0);
+}
+
+.flap--top { transform-origin: 50% 0; transform: translateZ(3px); }
+.flap--top .flap__front {
+  -webkit-clip-path: polygon(0 0, 100% 0, 100% 29.18%, 50% 53.64%, 0 29.4%);
+  clip-path: polygon(0 0, 100% 0, 100% 29.18%, 50% 53.64%, 0 29.4%);
+}
+.flap--top .flap__back {
+  transform: rotateX(180deg);
+  -webkit-clip-path: polygon(0 100%, 100% 100%, 100% 70.82%, 50% 46.36%, 0 70.6%);
+  clip-path: polygon(0 100%, 100% 100%, 100% 70.82%, 50% 46.36%, 0 70.6%);
+}
+
+/* The wax seal breaks along a jagged line: one half leaves with each flap. */
+.seal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(157 / 479.5 * 100%);
+  height: calc(157 / 852 * 100%);
+  transform: translate(-50%, -50%) translateZ(1px);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+/* The bottom half rides on the bottom flap, which lies under the top flap's tip — lift it clear.
+   The top half sits higher still and overlaps the crack by a hair, so no seam shows while sealed. */
+.seal--bottom { transform: translate(-50%, -50%) translateZ(2.5px); }
+.seal--top { transform: translate(-50%, -50%) translateZ(3px); }
+.seal img { width: 100%; height: 100%; max-width: none; }
+.seal--top img {
+  -webkit-clip-path: polygon(0 0, 100% 0, 100% 51.5%, 86% 48.5%, 71% 55.5%, 57% 47.5%, 44% 54.5%, 30% 48.5%, 15% 53.5%, 0 50.5%);
+  clip-path: polygon(0 0, 100% 0, 100% 51.5%, 86% 48.5%, 71% 55.5%, 57% 47.5%, 44% 54.5%, 30% 48.5%, 15% 53.5%, 0 50.5%);
+}
+.seal--bottom img {
+  -webkit-clip-path: polygon(0 49%, 15% 52%, 30% 47%, 44% 53%, 57% 46%, 71% 54%, 86% 47%, 100% 50%, 100% 100%, 0 100%);
+  clip-path: polygon(0 49%, 15% 52%, 30% 47%, 44% 53%, 57% 46%, 71% 54%, 86% 47%, 100% 50%, 100% 100%, 0 100%);
+}
+
+.envelope__open {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+}
+.envelope.is-opening .envelope__open { pointer-events: none; }
 .envelope__hint {
   position: absolute;
   top: calc(50% + 108px);

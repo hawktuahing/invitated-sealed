@@ -28,19 +28,100 @@ window.addEventListener('scroll', () => {
   requestAnimationFrame(updateTopbar);
 }, { passive: true });
 
-// Envelope: a plain fade for now. The doors → alley video replaces it once it is generated.
+// Envelope: the seal cracks, then every flap unfolds on its own beat while the cover settles in underneath.
 const envelope = document.getElementById('envelope');
-envelope.querySelector('.envelope__open').addEventListener('click', async () => {
-  const fade = envelope.animate([{ opacity: 1 }, { opacity: 0 }], {
-    duration: reduceMotion ? 0 : 600,
-    easing: 'ease',
-  });
-  await fade.finished;
+const cover = document.getElementById('cover');
+
+// One flap: it sticks for a moment, lifts toward the viewer, turns edge-on and folds away showing its inside.
+function unfoldFlap(selector, [rest, unstick, edgeOn, away], timing) {
+  const flap = envelope.querySelector(selector);
+  const options = { ...timing, easing: 'linear', fill: 'forwards' };
+  return [
+    flap.animate([
+      { transform: rest, easing: 'cubic-bezier(0.5, 0, 0.7, 0.4)' },
+      { transform: unstick, offset: 0.18, easing: 'cubic-bezier(0.3, 0.1, 0.6, 1)' },
+      { transform: edgeOn, offset: 0.6, easing: 'cubic-bezier(0.25, 0, 0.3, 1)' },
+      { transform: away },
+    ], options),
+    // Paper darkens as it tilts away from the light; the inside brightens as it comes round.
+    flap.querySelector('.flap__front').animate([
+      { filter: 'brightness(1)' },
+      { filter: 'brightness(1)', offset: 0.18 },
+      { filter: 'brightness(0.78)', offset: 0.6 },
+      { filter: 'brightness(0.7)' },
+    ], options),
+    flap.querySelector('.flap__back').animate([
+      { filter: 'brightness(0.72)' },
+      { filter: 'brightness(0.72)', offset: 0.6 },
+      { filter: 'brightness(1)' },
+    ], options),
+  ];
+}
+
+function crackSeal(half, drift, delay) {
+  return envelope.querySelector(`.seal--${half} img`).animate([
+    { transform: 'none', easing: 'cubic-bezier(0.3, 0, 0.6, 1)' },
+    { transform: 'scale(0.95)', offset: 0.4, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' },
+    { transform: drift },
+  ], { duration: 380, delay, fill: 'forwards' });
+}
+
+async function openEnvelope() {
+  envelope.classList.add('is-opening');
+
+  if (reduceMotion) {
+    await envelope.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished;
+  } else {
+    const moves = [
+      envelope.querySelector('.envelope__hint').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' }),
+      crackSeal('top', 'translate(-1px, -4px) rotate(-3deg)', 0),
+      crackSeal('bottom', 'translate(2px, 5px) rotate(2deg)', 20),
+      ...unfoldFlap('.flap--top', [
+        'translateZ(3px) rotateX(0deg)',
+        'translateZ(3px) translateY(-0.4%) rotateX(10deg)',
+        'translateZ(3px) translateY(-9%) rotateX(96deg)',
+        'translateZ(3px) translateY(-45%) rotateX(170deg)',
+      ], { duration: 1250, delay: 340 }),
+      ...unfoldFlap('.flap--left', [
+        'rotateY(0deg)',
+        'translateX(-0.6%) rotateY(-8deg)',
+        'translateX(-12%) rotateY(-98deg)',
+        'translateX(-48%) rotateY(-164deg)',
+      ], { duration: 1150, delay: 720 }),
+      ...unfoldFlap('.flap--right', [
+        'rotateY(0deg)',
+        'translateX(0.5%) rotateY(7deg)',
+        'translateX(11%) rotateY(94deg)',
+        'translateX(46%) rotateY(160deg)',
+      ], { duration: 1220, delay: 820 }),
+      ...unfoldFlap('.flap--bottom', [
+        'translateZ(1.5px) rotateX(0deg)',
+        'translateZ(1.5px) translateY(0.5%) rotateX(-9deg)',
+        'translateZ(1.5px) translateY(10%) rotateX(-97deg)',
+        'translateZ(1.5px) translateY(46%) rotateX(-168deg)',
+      ], { duration: 1320, delay: 980 }),
+      envelope.querySelector('.envelope__shade').animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: 1500, delay: 700, easing: 'ease-out', fill: 'forwards',
+      }),
+      cover.querySelector('.cover__card').animate([
+        { transform: 'translateY(16px) scale(0.94)', opacity: 0.5 },
+        { transform: 'none', opacity: 1 },
+      ], { duration: 1600, delay: 650, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)', fill: 'backwards' }),
+      cover.querySelector('.cover__bg').animate([{ scale: '1.08' }, { scale: '1' }], {
+        duration: 2400, delay: 400, easing: 'cubic-bezier(0.2, 0.6, 0.2, 1)', fill: 'backwards',
+      }),
+    ];
+    await Promise.all(moves.map((move) => move.finished));
+  }
+
   envelope.hidden = true;
   root.classList.remove('is-locked');
   window.scrollTo(0, 0);
   topbar.hidden = false;
-}, { once: true });
+  if (!reduceMotion) topbar.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, easing: 'ease' });
+}
+
+envelope.querySelector('.envelope__open').addEventListener('click', openEnvelope, { once: true });
 
 // Scratch card: wiping the heart away reveals the date, and once it is empty a party popper fires from below.
 const date = document.getElementById('date');
