@@ -190,7 +190,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 
 /* ---------- 1. Envelope ---------- */
-/* Sits on top of the cover until it has unfolded. */
+/* Sits on top of the cover until it has opened and slid away. */
 .envelope {
   position: absolute;
   z-index: 5;
@@ -200,7 +200,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   container-type: size;
 }
 
-/* Darkens the cover where the flaps still hang over it; fades as they leave. */
+/* Darkens the cover while the envelope lies over it; lifts as the envelope slides away. */
 .envelope__shade {
   position: absolute;
   inset: 0;
@@ -208,7 +208,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 
 /* The paper photo's own 479.5×852 box, covering the screen whatever its proportions,
-   so the crease percentages below always land on the creases. */
+   so the crease percentages in main.js always land on the creases. */
 .envelope__stage {
   position: absolute;
   top: 50%;
@@ -221,8 +221,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   perspective-origin: 50% 45%;
 }
 
-/* Each flap is a chain of paper strips built by main.js. Every strip hinges on the one
-   before it, so the sheet bends and sags instead of turning like a board. */
+/* The glued body slides away as one piece; the top flap is a chain of paper strips built by
+   main.js, each hinged on the one before it, so the sheet bends instead of turning like a board. */
+.envelope__body,
 .flap,
 .band {
   position: absolute;
@@ -230,6 +231,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   transform-style: preserve-3d;
   pointer-events: none;
 }
+.envelope__body,
 .band { will-change: transform; }
 
 /* One side of a strip, sized to the strip so its GPU layer stays small. */
@@ -240,15 +242,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   backface-visibility: hidden;
 }
 .face img { position: absolute; max-width: none; }
-/* Mirrored paper on a side flap's shoulder. While the envelope is shut the photo's own crease
-   shadow shows there instead; the mirror takes over once the flap covering it has lifted. */
-.face__mirror {
-  position: absolute;
-  inset: 0;
-  visibility: hidden;
-}
-.envelope.is-open-top .face__mirror--top,
-.envelope.is-open-bottom .face__mirror--bottom { visibility: visible; }
 /* Shading runs smoothly across each strip, from the tone of the fold before it to the fold after,
    so a bent sheet reads as one curved surface instead of stepped slats. */
 .face::after {
@@ -259,34 +252,44 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   pointer-events: none;
 }
 /* The inside of the envelope: unprinted paper with a little fibre in it. */
-.face--back {
+.face--back,
+.envelope__inside {
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.37 0 0 0 0 0.3 0 0 0 0.12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
     linear-gradient(165deg, #f3ede3, #e0d6c5);
 }
 
-/* Wax seal: whole while sealed, then four pieces that leave with their flaps. */
-.seal-whole,
-.seal-piece {
+/* Behind every flap, seen through the mouth once the top flap lifts, darkening toward the pocket.
+   Its top edge casts a soft shadow onto the invitation as the envelope slides away. */
+.envelope__inside {
+  position: absolute;
+  inset: 0;
+  transform: translateZ(-1px);
+  box-shadow: 0 -12px 28px rgba(20, 14, 6, 0.28);
+}
+.envelope__inside::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(90, 64, 30, 0) 0%, rgba(90, 64, 30, 0.07) 30%, rgba(70, 48, 22, 0.2) 52%);
+}
+
+/* Wax seal in two halves along one crack: the upper rides the top flap, the lower stays. */
+.seal-half {
   position: absolute;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
-.seal-whole img,
-.seal-piece img {
+.seal-half img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   max-width: none;
 }
-.seal-piece { visibility: hidden; }
-.envelope.is-split .seal-piece { visibility: visible; }
-/* Each broken piece casts a hairline shadow, so the gaps read as crevices in the wax. */
-.seal-piece { filter: drop-shadow(0 0.6px 0.8px rgba(0, 0, 0, 0.45)); }
 
-/* Cracks are masked by the wax itself so they never run out onto the paper. */
-.seal-cracks {
+/* The crack: a dark hairline with a faint lit lip, masked by the wax so it never runs onto paper. */
+.seal-crack {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -294,12 +297,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   -webkit-mask: url("../assets/img/envelope-seal.png") center / 100% 100% no-repeat;
   mask: url("../assets/img/envelope-seal.png") center / 100% 100% no-repeat;
 }
-.seal-cracks path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
-/* A crack is a dark crevice with a faint lit lip on its upper edge. */
-.crack__glint { stroke: rgba(255, 236, 190, 0.3); stroke-width: 0.6px; transform: translate(-0.25px, -0.6px); }
-.crack__core { stroke: rgba(6, 20, 15, 0.95); stroke-width: 0.9px; }
+.seal-crack path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.seal-crack__lip { stroke: rgba(255, 236, 190, 0.35); stroke-width: 0.6px; transform: translateY(-0.6px); }
+.seal-crack__core { stroke: rgba(6, 20, 15, 0.95); stroke-width: 0.8px; }
 
-/* Wax crumbs and the dropped shard fly in screen space, above the paper. */
+/* Wax crumbs fly in screen space, above the paper. */
 .envelope__fx {
   position: absolute;
   z-index: 2;
@@ -312,18 +314,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   top: 0;
   left: 0;
   border-radius: 45% 55% 60% 40%;
+  background: radial-gradient(circle at 35% 30%, #4c8a72, #123f33 65%, #0a2a22);
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
-}
-.chip--wax { background: radial-gradient(circle at 35% 30%, #4c8a72, #123f33 65%, #0a2a22); }
-.chip--gold { background: radial-gradient(circle at 35% 30%, #f2dca2, #b58b45 70%); }
-.shard { position: absolute; }
-.shard img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
 }
 
 .envelope__open {
