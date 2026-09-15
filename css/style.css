@@ -14,7 +14,6 @@
 
   --font-script: "Allura", "Snell Roundhand", cursive;
   --font-serif: "Abhaya Libre", Georgia, "Times New Roman", serif;
-  --font-sans: "Manrope", system-ui, -apple-system, sans-serif;
 
   /* Every section in the mock is one 393×852 phone screen; positions below are in those pixels. */
   --screen-w: 393px;
@@ -146,6 +145,49 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   background: linear-gradient(180deg, rgba(226, 217, 200, 0), var(--cream));
 }
 
+/* ---------- Header ---------- */
+.topbar {
+  position: fixed;
+  z-index: 10;
+  top: 0;
+  left: 50%;
+  width: 100%;
+  max-width: var(--screen-w);
+  height: calc(72px + env(safe-area-inset-top));
+  padding: calc(14px + env(safe-area-inset-top)) 24px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.1);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  transform: translate(-50%, 0);
+  transition: transform 0.35s ease, background-color 0.35s ease, color 0.35s ease;
+}
+.topbar.is-hidden { transform: translate(-50%, -100%); }
+.topbar__title { font-size: 20px; line-height: 24px; letter-spacing: -0.01em; }
+
+.sound {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transition: border-color 0.35s ease;
+}
+.sound img { transition: filter 0.35s ease; }
+
+/* Over the cream screens white type disappears, so the bar flips to ink. */
+.topbar.is-light { background: rgba(226, 217, 200, 0.6); color: var(--ink); }
+.topbar.is-light .sound { border-color: rgba(23, 60, 53, 0.2); }
+.topbar.is-light .sound img { filter: brightness(0) opacity(0.8); }
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar, .sound, .sound img { transition: none; }
+}
+
 /* ---------- 1. Envelope ---------- */
 .envelope { background: var(--paper); }
 .envelope__open {
@@ -178,37 +220,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .cover__bg { --dx: 5.95px; }
 
-.topbar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 72px;
-  padding: 14px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: rgba(0, 0, 0, 0.1);
-  color: #fff;
-}
-.topbar__title { font-size: 20px; line-height: 24px; letter-spacing: -0.01em; }
-.topbar__actions { display: flex; align-items: center; gap: 12px; }
-
-.lang {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font: 400 14px/18px var(--font-sans);
-  color: #fff;
-}
-.sound {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-}
 
 .cover__card { padding: 24px 60px; }
 .cover__group { display: flex; flex-direction: column; align-items: center; gap: 8px; }
