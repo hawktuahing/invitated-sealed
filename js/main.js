@@ -29,8 +29,8 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 // Envelope: a real envelope. The wax seal snaps in two along one crack, the sealed top flap bends
-// open carrying the upper half of the seal, and once it has left the top of the screen the glued
-// body of the envelope slides away down it. Add ?slowmo=4 to the URL to watch it slowly.
+// open carrying the upper half of the seal, and a moment after it has left the top of the screen
+// the glued body of the envelope slides away down it. Add ?slowmo=4 to the URL to watch it slowly.
 const envelope = document.getElementById('envelope');
 const cover = document.getElementById('cover');
 const envelopeStage = envelope.querySelector('.envelope__stage');
@@ -48,6 +48,7 @@ const T = {
 };
 const LIFT_DURATION = 1500;
 const SLIDE_DURATION = 1150;
+const SLIDE_PAUSE = 700; // the open envelope rests a moment before it slides away
 const SLIDE_LATEST = T.lift + LIFT_DURATION + 900; // slide by then even if a corner of the flap still shows
 
 // Crease lines measured off the photo, in percent of its 479.5×852 box. The top flap is cut into
@@ -198,13 +199,10 @@ function makeSealHalf(half, z) {
   return el;
 }
 
-// The glued body: the inside of the envelope, seen through its mouth once the flap lifts, and the
-// side and bottom flaps sealed over it. It slides away as one piece.
+// The glued body: the side and bottom flaps, with nothing behind them, so the invitation shows
+// through the mouth once the flap lifts. It slides away as one piece.
 const envelopeBody = document.createElement('div');
 envelopeBody.className = 'envelope__body';
-const envelopeInside = document.createElement('div');
-envelopeInside.className = 'envelope__inside';
-envelopeBody.append(envelopeInside);
 const gluedFlaps = Object.fromEntries(GLUED_FLAPS.map(({ name, z, polygon }) => {
   const flap = document.createElement('div');
   flap.className = `flap flap--${name}`;
@@ -344,15 +342,9 @@ function topFlapGone() {
 
 // The glued body slides away down the screen, letting the invitation in from above.
 function slideBodyAway() {
-  play(envelope.querySelector('.envelope__shade'), [{ opacity: 1 }, { opacity: 0 }], {
+  envelope.classList.add('is-sliding');
+  play(envelope.querySelector('.envelope__shade'), [{ opacity: 0.45 }, { opacity: 0 }], {
     duration: SLIDE_DURATION, easing: 'ease-out', fill: 'forwards',
-  });
-  play(cover.querySelector('.cover__card'), [
-    { transform: 'translateY(-12px) scale(0.97)', opacity: 0.7 },
-    { transform: 'none', opacity: 1 },
-  ], { duration: SLIDE_DURATION + 300, delay: 150, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)', fill: 'backwards' });
-  play(cover.querySelector('.cover__bg'), [{ scale: '1.06' }, { scale: '1' }], {
-    duration: SLIDE_DURATION + 900, easing: 'cubic-bezier(0.2, 0.6, 0.2, 1)',
   });
   return play(envelopeBody, [{ transform: 'translateY(0)' }, { transform: 'translateY(104%)' }], {
     duration: SLIDE_DURATION, easing: 'cubic-bezier(0.55, 0, 0.35, 1)', fill: 'forwards',
@@ -377,10 +369,23 @@ function openEnvelope() {
 
   play(envelope.querySelector('.envelope__hint'), [{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' });
 
+  // As the flap lifts, the invitation shows through the mouth, brightens and settles in underneath.
+  play(envelope.querySelector('.envelope__shade'), [{ opacity: 1 }, { opacity: 0.45 }], {
+    duration: 900, delay: T.lift, easing: 'ease-out', fill: 'forwards',
+  });
+  play(cover.querySelector('.cover__card'), [
+    { transform: 'translateY(-12px) scale(0.97)', opacity: 0.7 },
+    { transform: 'none', opacity: 1 },
+  ], { duration: 1800, delay: T.lift, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)', fill: 'backwards' });
+  play(cover.querySelector('.cover__bg'), [{ scale: '1.06' }, { scale: '1' }], {
+    duration: 2600, delay: T.lift, easing: 'cubic-bezier(0.2, 0.6, 0.2, 1)', fill: 'backwards',
+  });
+
   const SUBSTEPS = 4;
   const start = performance.now();
   let last = start;
   let snapped = false;
+  let goneAt = null;
 
   function frame(now) {
     const time = (now - start) / slowmo;
@@ -396,7 +401,8 @@ function openEnvelope() {
       }
       renderFlap(topFlap);
     }
-    if (time > T.lift + 300 && (time >= SLIDE_LATEST || topFlapGone())) {
+    if (goneAt === null && time > T.lift + 300 && (time >= SLIDE_LATEST || topFlapGone())) goneAt = time;
+    if (goneAt !== null && time >= goneAt + SLIDE_PAUSE) {
       slideBodyAway().then(finishEnvelope);
       return;
     }

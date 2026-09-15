@@ -252,27 +252,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   pointer-events: none;
 }
 /* The inside of the envelope: unprinted paper with a little fibre in it. */
-.face--back,
-.envelope__inside {
+.face--back {
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.37 0 0 0 0 0.3 0 0 0 0.12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
     linear-gradient(165deg, #f3ede3, #e0d6c5);
 }
 
-/* Behind every flap, seen through the mouth once the top flap lifts, darkening toward the pocket.
-   Its top edge casts a soft shadow onto the invitation as the envelope slides away. */
-.envelope__inside {
-  position: absolute;
-  inset: 0;
-  transform: translateZ(-1px);
-  box-shadow: 0 -12px 28px rgba(20, 14, 6, 0.28);
-}
-.envelope__inside::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(90, 64, 30, 0) 0%, rgba(90, 64, 30, 0.07) 30%, rgba(70, 48, 22, 0.2) 52%);
-}
+/* A soft shadow from the envelope onto the invitation as it slides away. Only while sliding: a filter
+   flattens the body's 3D layers, which would put it over the top flap while that is still in view. */
+.envelope.is-sliding .envelope__body { filter: drop-shadow(0 -4px 14px rgba(20, 14, 6, 0.3)); }
 
 /* Wax seal in two halves along one crack: the upper rides the top flap, the lower stays. */
 .seal-half {
