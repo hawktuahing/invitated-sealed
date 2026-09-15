@@ -57,16 +57,30 @@ const T = {
 
 // Crease lines measured off the photo, in percent of its 479.5×852 box. Cuts run from the hinge
 // to the tip; the last strip of the top and bottom flaps carries the wax, so it stays rigid.
+//
+// Side flaps are bigger than the triangle the photo shows: their shoulders run on under the top
+// and bottom flaps with an edge of their own. The photo has no side-flap paper there, so the
+// shoulders mirror the flap's own paper across a line just inside each visible edge (past the
+// shadow the neighbouring flap casts). `mirrors` lines are y = intercept + slope·x in percent.
+const PHOTO_ASPECT = 852 / 479.5;
 const FLAP_SPECS = [
   {
     name: 'left', axis: 'x', sign: -1, z: 0, delay: T.left, duration: 1250, gravity: 700,
-    polygon: [[0, 28.9], [36.6, 46.48], [0, 65.3]],
+    polygon: [[0, 19], [12, 27.5], [22, 35.6], [30, 43.31], [36.6, 46.48], [30, 49.87], [22, 58.4], [12, 67.9], [0, 78]],
     cuts: [0, 8, 15.5, 22.5, 29.5, 36.6],
+    mirrors: [
+      { edge: 'top', intercept: 30.1, slope: 0.4803, keep: 'above', x: [-5, 30.5] },
+      { edge: 'bottom', intercept: 64.1, slope: -0.5142, keep: 'below', x: [-5, 30.5] },
+    ],
   },
   {
     name: 'right', axis: 'x', sign: 1, z: 0, delay: T.right, duration: 1300, gravity: 700,
-    polygon: [[100, 28.7], [64, 46.83], [100, 65.9]],
+    polygon: [[100, 19], [88, 27.8], [78, 36.1], [70.5, 43.56], [64, 46.83], [70.5, 50.27], [78, 58.5], [88, 67.9], [100, 78]],
     cuts: [100, 92, 84.5, 77.5, 70.5, 64],
+    mirrors: [
+      { edge: 'top', intercept: 80.26, slope: -0.5036, keep: 'above', x: [69.5, 105] },
+      { edge: 'bottom', intercept: 11.73, slope: 0.5297, keep: 'below', x: [69.5, 105] },
+    ],
   },
   {
     name: 'bottom', axis: 'y', sign: -1, z: 1.5, delay: T.bottom, duration: 1450, gravity: 900,
@@ -142,8 +156,40 @@ function clipToStrip(polygon, axis, from, to) {
 
 const OPPOSITE = { 'to bottom': 'to top', 'to top': 'to bottom', 'to right': 'to left', 'to left': 'to right' };
 
+function photoImage(box) {
+  const img = new Image();
+  img.src = PAPER_SRC;
+  img.alt = '';
+  Object.assign(img.style, {
+    width: `${10000 / box.width}%`,
+    height: `${10000 / box.height}%`,
+    left: `${(-box.left / box.width) * 100}%`,
+    top: `${(-box.top / box.height) * 100}%`,
+  });
+  return img;
+}
+
+// A copy of the photo flipped across the line y = intercept + slope·x (a vertical, sheared flip,
+// so every point keeps its x and never samples off the edge of the photo), shown only beyond it.
+function makeMirror(box, { edge, intercept, slope, keep, x: [x0, x1] }) {
+  const lineY = (x) => intercept + slope * x;
+  const region = keep === 'above'
+    ? [[x0, -20], [x1, -20], [x1, lineY(x1)], [x0, lineY(x0)]]
+    : [[x0, lineY(x0)], [x1, lineY(x1)], [x1, 120], [x0, 120]];
+
+  const mirror = document.createElement('div');
+  mirror.className = `face__mirror face__mirror--${edge}`;
+  setClip(mirror, region.map(([x, y]) => [((x - box.left) / box.width) * 100, ((y - box.top) / box.height) * 100]));
+
+  const img = photoImage(box);
+  img.style.transformOrigin = '0 0';
+  img.style.transform = `translateY(${2 * intercept}%) matrix(1, ${2 * slope * PHOTO_ASPECT}, 0, -1, 0, 0)`;
+  mirror.append(img);
+  return mirror;
+}
+
 // shadeDir points from the hinge side of the strip toward its tip, as seen from the front.
-function makeFace(points, axis, isBack, shadeDir) {
+function makeFace(points, axis, isBack, shadeDir, mirrors = []) {
   const xs = points.map(([x]) => x);
   const ys = points.map(([, y]) => y);
   const left = Math.min(...xs);
@@ -163,16 +209,8 @@ function makeFace(points, axis, isBack, shadeDir) {
     face.style.setProperty('--shade-dir', OPPOSITE[shadeDir]);
   } else {
     face.style.setProperty('--shade-dir', shadeDir);
-    const img = new Image();
-    img.src = PAPER_SRC;
-    img.alt = '';
-    Object.assign(img.style, {
-      width: `${10000 / width}%`,
-      height: `${10000 / height}%`,
-      left: `${(-left / width) * 100}%`,
-      top: `${(-top / height) * 100}%`,
-    });
-    face.append(img);
+    const box = { left, top, width, height };
+    face.append(photoImage(box), ...mirrors.map((mirror) => makeMirror(box, mirror)));
   }
   setClip(face, local);
   return face;
@@ -193,7 +231,7 @@ function buildFlap(spec) {
     band.className = 'band';
     band.style.transformOrigin = spec.axis === 'y' ? `50% ${spec.cuts[i]}%` : `${spec.cuts[i]}% 50%`;
     const strip = clipToStrip(spec.polygon, spec.axis, spec.cuts[i], spec.cuts[i + 1]);
-    const front = makeFace(strip, spec.axis, false, shadeDir);
+    const front = makeFace(strip, spec.axis, false, shadeDir, spec.mirrors);
     const back = makeFace(strip, spec.axis, true, shadeDir);
     band.append(front, back);
     parent.append(band);
@@ -465,6 +503,9 @@ function openEnvelope() {
   const events = [
     { at: T.chips, run: () => scatterChips(14) },
     { at: T.split, run: splitSeal },
+    // Once a flap lifts, the side flaps' shoulders it was covering come into view.
+    { at: T.top, run: () => envelope.classList.add('is-open-top') },
+    { at: T.bottom, run: () => envelope.classList.add('is-open-bottom') },
   ];
   const end = Math.max(...flaps.map((flap) => flap.delay + flap.duration)) + 700;
   const SUBSTEPS = 4;

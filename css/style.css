@@ -240,6 +240,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   backface-visibility: hidden;
 }
 .face img { position: absolute; max-width: none; }
+/* Mirrored paper on a side flap's shoulder. While the envelope is shut the photo's own crease
+   shadow shows there instead; the mirror takes over once the flap covering it has lifted. */
+.face__mirror {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+}
+.envelope.is-open-top .face__mirror--top,
+.envelope.is-open-bottom .face__mirror--bottom { visibility: visible; }
 /* Shading runs smoothly across each strip, from the tone of the fold before it to the fold after,
    so a bent sheet reads as one curved surface instead of stepped slats. */
 .face::after {
