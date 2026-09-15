@@ -29,8 +29,8 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 // Envelope: a real envelope. The wax seal snaps in two along one crack, the sealed top flap bends
-// open carrying the upper half of the seal, and a moment after it has left the top of the screen
-// the glued body of the envelope slides away down it. Add ?slowmo=4 to the URL to watch it slowly.
+// open carrying the upper half of the seal, and once it has left the top of the screen the glued
+// body of the envelope slides away down it. Add ?slowmo=4 to the URL to watch it slowly.
 const envelope = document.getElementById('envelope');
 const cover = document.getElementById('cover');
 const envelopeStage = envelope.querySelector('.envelope__stage');
@@ -48,19 +48,26 @@ const T = {
 };
 const LIFT_DURATION = 1500;
 const SLIDE_DURATION = 1150;
-const SLIDE_PAUSE = 700; // the open envelope rests a moment before it slides away
 const SLIDE_LATEST = T.lift + LIFT_DURATION + 900; // slide by then even if a corner of the flap still shows
 
 // Crease lines measured off the photo, in percent of its 479.5×852 box. The top flap is cut into
 // strips from the hinge to the tip, so it bends like paper; its last strip carries the wax. Its very
 // tip ends at the crack: below that it lies under the lower half of the seal, hidden while sealed,
-// and would otherwise cover that half as it lifts.
+// and would otherwise cover that half as it lifts. Its V edges run just past the crease (see
+// TOP_FLAP_EDGE.margin), so the edge's lip and shadow leave with it.
 const TOP_FLAP = {
   axis: 'y', sign: 1, z: 3, gravity: 900, delay: T.lift, duration: LIFT_DURATION,
-  polygon: [[0, 0], [100, 0], [100, 29.18], [58.47, 49.5], [42.46, 49.5], [0, 29.4]],
+  polygon: [[0, 0], [100, 0], [100, 30.08], [60.30, 49.5], [39.60, 49.5], [0, 30.30]],
   cuts: [0, 10, 19, 27, 34, 40.5, 49.5],
 };
-// The side and bottom flaps are glued into the pocket and never bend.
+// The side and bottom flaps are glued into the pocket and never bend. Only what lay out in the open
+// is kept: everything above the top flap's edge (the flap tips it covered, plus that edge's own lip
+// and shadow printed in the photo) would still read as the top flap once it has gone.
+const TOP_FLAP_EDGE = {
+  left: { from: [0, 29.4], to: [50, 53.64] },
+  right: { from: [100, 29.18], to: [50, 53.64] },
+  margin: 0.8,
+};
 const GLUED_FLAPS = [
   { name: 'left', z: 0, polygon: [[0, 28.9], [36.6, 46.48], [0, 65.3]] },
   { name: 'right', z: 0, polygon: [[100, 28.7], [64, 46.83], [100, 65.9]] },
@@ -184,6 +191,32 @@ function buildTopFlap(spec) {
   };
 }
 
+// Keep the part of a polygon where a·x + b·y ≥ c.
+function clipHalfPlane(points, a, b, c) {
+  const f = ([x, y]) => a * x + b * y - c;
+  return points.flatMap((p, i) => {
+    const q = points[(i + 1) % points.length];
+    const out = f(p) >= 0 ? [p] : [];
+    if ((f(p) >= 0) !== (f(q) >= 0)) {
+      const t = f(p) / (f(p) - f(q));
+      out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]);
+    }
+    return out;
+  });
+}
+
+// The pieces of a glued flap that lie below the top flap's V-shaped edge: one per side of the V.
+function belowTopFlapEdge(polygon) {
+  const { margin } = TOP_FLAP_EDGE;
+  return [['left', (x) => 50 + SEAM - x], ['right', (x) => x - (50 - SEAM)]].map(([side]) => {
+    const { from: [x0, y0], to: [x1, y1] } = TOP_FLAP_EDGE[side];
+    const slope = (y1 - y0) / (x1 - x0);
+    // y ≥ y0 + slope·(x − x0) + margin  →  −slope·x + y ≥ y0 − slope·x0 + margin
+    const below = clipHalfPlane(polygon, -slope, 1, y0 - slope * x0 + margin);
+    return side === 'left' ? clipHalfPlane(below, -1, 0, -(50 + SEAM)) : clipHalfPlane(below, 1, 0, 50 - SEAM);
+  }).filter((piece) => piece.length >= 3);
+}
+
 function makeSealHalf(half, z) {
   const el = document.createElement('div');
   el.className = `seal-half seal-half--${half}`;
@@ -207,7 +240,7 @@ const gluedFlaps = Object.fromEntries(GLUED_FLAPS.map(({ name, z, polygon }) => 
   const flap = document.createElement('div');
   flap.className = `flap flap--${name}`;
   flap.style.transform = `translateZ(${z}px)`;
-  flap.append(makeFace(polygon, 'y', false, 'to bottom'));
+  belowTopFlapEdge(polygon).forEach((piece) => flap.append(makeFace(piece, 'y', false, 'to bottom')));
   envelopeBody.append(flap);
   return [name, flap];
 }));
@@ -385,7 +418,6 @@ function openEnvelope() {
   const start = performance.now();
   let last = start;
   let snapped = false;
-  let goneAt = null;
 
   function frame(now) {
     const time = (now - start) / slowmo;
@@ -401,8 +433,7 @@ function openEnvelope() {
       }
       renderFlap(topFlap);
     }
-    if (goneAt === null && time > T.lift + 300 && (time >= SLIDE_LATEST || topFlapGone())) goneAt = time;
-    if (goneAt !== null && time >= goneAt + SLIDE_PAUSE) {
+    if (time > T.lift + 300 && (time >= SLIDE_LATEST || topFlapGone())) {
       slideBodyAway().then(finishEnvelope);
       return;
     }
