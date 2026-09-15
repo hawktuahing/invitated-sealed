@@ -28,9 +28,8 @@ window.addEventListener('scroll', () => {
   requestAnimationFrame(updateTopbar);
 }, { passive: true });
 
-// Envelope: the wax seal cracks in stages, then the sealed top flap peels open as a bendable sheet
-// of paper — like a real envelope, whose other flaps are glued shut — and the envelope gives way
-// to the invitation. Add ?slowmo=4 to the URL to watch it slowly.
+// Envelope: the wax seal cracks in stages, then each flap peels open as a bendable sheet of
+// paper while the cover settles in underneath. Add ?slowmo=4 to the URL to watch it slowly.
 const envelope = document.getElementById('envelope');
 const cover = document.getElementById('cover');
 const envelopeStage = envelope.querySelector('.envelope__stage');
@@ -49,29 +48,44 @@ const T = {
   strain: 680, // the wax trembles and the cracks widen
   chips: 760, // crumbs pop off
   split: 900, // it gives way
-  top: 980, // the sealed flap lifts
-  fade: 2150, // the envelope gives way to the invitation
+  // Flaps open in the reverse of how an envelope is folded shut: top, bottom, then the sides.
+  top: 980,
+  bottom: 1300,
+  right: 1600,
+  left: 1740,
 };
-const ENVELOPE_FADE = 800;
 
-// Crease lines measured off the photo, in percent of its 479.5×852 box. The side and bottom flaps
-// are glued into the pocket, so they stay put as single flat pieces. The top flap is cut into
-// strips from the hinge to the tip; its last strip carries the wax, so it stays rigid.
+// Crease lines measured off the photo, in percent of its 479.5×852 box. Cuts run from the hinge
+// to the tip; the last strip of the top and bottom flaps carries the wax, so it stays rigid.
+//
+// Side flaps are bigger than the triangle the photo shows: their shoulders run on under the top
+// and bottom flaps with an edge of their own. The photo has no side-flap paper there, so the
+// shoulders mirror the flap's own paper across a line just inside each visible edge (past the
+// shadow the neighbouring flap casts). `mirrors` lines are y = intercept + slope·x in percent.
+const PHOTO_ASPECT = 852 / 479.5;
 const FLAP_SPECS = [
   {
-    name: 'left', axis: 'x', sign: -1, z: 0, glued: true,
-    polygon: [[0, 28.9], [36.6, 46.48], [0, 65.3]],
-    cuts: [0, 36.6],
+    name: 'left', axis: 'x', sign: -1, z: 0, delay: T.left, duration: 1250, gravity: 700,
+    polygon: [[0, 19], [12, 27.5], [22, 35.6], [30, 43.31], [36.6, 46.48], [30, 49.87], [22, 58.4], [12, 67.9], [0, 78]],
+    cuts: [0, 8, 15.5, 22.5, 29.5, 36.6],
+    mirrors: [
+      { edge: 'top', intercept: 30.1, slope: 0.4803, keep: 'above', x: [-5, 30.5] },
+      { edge: 'bottom', intercept: 64.1, slope: -0.5142, keep: 'below', x: [-5, 30.5] },
+    ],
   },
   {
-    name: 'right', axis: 'x', sign: 1, z: 0, glued: true,
-    polygon: [[100, 28.7], [64, 46.83], [100, 65.9]],
-    cuts: [100, 64],
+    name: 'right', axis: 'x', sign: 1, z: 0, delay: T.right, duration: 1300, gravity: 700,
+    polygon: [[100, 19], [88, 27.8], [78, 36.1], [70.5, 43.56], [64, 46.83], [70.5, 50.27], [78, 58.5], [88, 67.9], [100, 78]],
+    cuts: [100, 92, 84.5, 77.5, 70.5, 64],
+    mirrors: [
+      { edge: 'top', intercept: 80.26, slope: -0.5036, keep: 'above', x: [69.5, 105] },
+      { edge: 'bottom', intercept: 11.73, slope: 0.5297, keep: 'below', x: [69.5, 105] },
+    ],
   },
   {
-    name: 'bottom', axis: 'y', sign: -1, z: 1.5, glued: true,
+    name: 'bottom', axis: 'y', sign: -1, z: 1.5, delay: T.bottom, duration: 1450, gravity: 900,
     polygon: [[0, 64.79], [50, 39.3], [100, 65.38], [100, 100], [0, 100]],
-    cuts: [100, 39.3],
+    cuts: [100, 90, 81, 73, 66, 60.5, 39.3],
   },
   {
     name: 'top', axis: 'y', sign: 1, z: 3, delay: T.top, duration: 1400, gravity: 900,
@@ -155,8 +169,27 @@ function photoImage(box) {
   return img;
 }
 
+// A copy of the photo flipped across the line y = intercept + slope·x (a vertical, sheared flip,
+// so every point keeps its x and never samples off the edge of the photo), shown only beyond it.
+function makeMirror(box, { edge, intercept, slope, keep, x: [x0, x1] }) {
+  const lineY = (x) => intercept + slope * x;
+  const region = keep === 'above'
+    ? [[x0, -20], [x1, -20], [x1, lineY(x1)], [x0, lineY(x0)]]
+    : [[x0, lineY(x0)], [x1, lineY(x1)], [x1, 120], [x0, 120]];
+
+  const mirror = document.createElement('div');
+  mirror.className = `face__mirror face__mirror--${edge}`;
+  setClip(mirror, region.map(([x, y]) => [((x - box.left) / box.width) * 100, ((y - box.top) / box.height) * 100]));
+
+  const img = photoImage(box);
+  img.style.transformOrigin = '0 0';
+  img.style.transform = `translateY(${2 * intercept}%) matrix(1, ${2 * slope * PHOTO_ASPECT}, 0, -1, 0, 0)`;
+  mirror.append(img);
+  return mirror;
+}
+
 // shadeDir points from the hinge side of the strip toward its tip, as seen from the front.
-function makeFace(points, axis, isBack, shadeDir) {
+function makeFace(points, axis, isBack, shadeDir, mirrors = []) {
   const xs = points.map(([x]) => x);
   const ys = points.map(([, y]) => y);
   const left = Math.min(...xs);
@@ -176,7 +209,8 @@ function makeFace(points, axis, isBack, shadeDir) {
     face.style.setProperty('--shade-dir', OPPOSITE[shadeDir]);
   } else {
     face.style.setProperty('--shade-dir', shadeDir);
-    face.append(photoImage({ left, top, width, height }));
+    const box = { left, top, width, height };
+    face.append(photoImage(box), ...mirrors.map((mirror) => makeMirror(box, mirror)));
   }
   setClip(face, local);
   return face;
@@ -197,7 +231,7 @@ function buildFlap(spec) {
     band.className = 'band';
     band.style.transformOrigin = spec.axis === 'y' ? `50% ${spec.cuts[i]}%` : `${spec.cuts[i]}% 50%`;
     const strip = clipToStrip(spec.polygon, spec.axis, spec.cuts[i], spec.cuts[i + 1]);
-    const front = makeFace(strip, spec.axis, false, shadeDir);
+    const front = makeFace(strip, spec.axis, false, shadeDir, spec.mirrors);
     const back = makeFace(strip, spec.axis, true, shadeDir);
     band.append(front, back);
     parent.append(band);
@@ -235,13 +269,7 @@ function makeSealPiece(name, z) {
   return { name, piece, img };
 }
 
-// The inside of the envelope, seen through its mouth once the sealed flap lifts.
-const envelopeInside = document.createElement('div');
-envelopeInside.className = 'envelope__inside';
-envelopeStage.append(envelopeInside);
-
 const flaps = FLAP_SPECS.map(buildFlap);
-const movingFlaps = flaps.filter((flap) => !flap.glued);
 const flapByName = Object.fromEntries(flaps.map((flap) => [flap.name, flap]));
 const topTip = flapByName.top.bands.at(-1).el;
 const bottomTip = flapByName.bottom.bands.at(-1).el;
@@ -372,10 +400,12 @@ function splitSeal() {
   });
   play(img, fall, { duration: 800, easing: 'linear', fill: 'forwards' });
 
-  // Released from the wax, the top flap's tip springs up a little before it opens.
+  // Released from the wax, the flap tips spring up a little before anything opens.
   const top = flapByName.top;
   top.vel[top.vel.length - 1] += 70;
   top.vel[top.vel.length - 2] += 30;
+  const bottom = flapByName.bottom;
+  bottom.vel[bottom.vel.length - 1] += 45;
 }
 
 // Paper physics: the strip at the crease is turned open; every other strip is pulled after its
@@ -459,23 +489,25 @@ function openEnvelope() {
 
   play(envelope.querySelector('.envelope__hint'), [{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' });
   crackSeal();
-  // With the flap open, the envelope dissolves into the cover, which settles in underneath.
-  play(envelope, [{ opacity: 1 }, { opacity: 0 }], {
-    duration: ENVELOPE_FADE, delay: T.fade, easing: 'ease-in-out', fill: 'forwards',
+  play(envelope.querySelector('.envelope__shade'), [{ opacity: 1 }, { opacity: 0 }], {
+    duration: 1800, delay: 1100, easing: 'ease-out', fill: 'forwards',
   });
   play(cover.querySelector('.cover__card'), [
     { transform: 'translateY(16px) scale(0.94)', opacity: 0.5 },
     { transform: 'none', opacity: 1 },
-  ], { duration: 1500, delay: T.fade - 100, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)', fill: 'backwards' });
+  ], { duration: 1700, delay: 1150, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)', fill: 'backwards' });
   play(cover.querySelector('.cover__bg'), [{ scale: '1.08' }, { scale: '1' }], {
-    duration: 2200, delay: T.fade - 300, easing: 'cubic-bezier(0.2, 0.6, 0.2, 1)', fill: 'backwards',
+    duration: 2600, delay: 900, easing: 'cubic-bezier(0.2, 0.6, 0.2, 1)', fill: 'backwards',
   });
 
   const events = [
     { at: T.chips, run: () => scatterChips(14) },
     { at: T.split, run: splitSeal },
+    // Once a flap lifts, the side flaps' shoulders it was covering come into view.
+    { at: T.top, run: () => envelope.classList.add('is-open-top') },
+    { at: T.bottom, run: () => envelope.classList.add('is-open-bottom') },
   ];
-  const end = T.fade + ENVELOPE_FADE;
+  const end = Math.max(...flaps.map((flap) => flap.delay + flap.duration)) + 700;
   const SUBSTEPS = 4;
   const start = performance.now();
   let last = start;
@@ -488,9 +520,9 @@ function openEnvelope() {
     if (dt > 0) {
       for (let s = 0; s < SUBSTEPS; s++) {
         const subTime = time - (dt * 1000 * (SUBSTEPS - 1 - s)) / SUBSTEPS;
-        movingFlaps.forEach((flap) => stepFlap(flap, subTime, dt / SUBSTEPS));
+        flaps.forEach((flap) => stepFlap(flap, subTime, dt / SUBSTEPS));
       }
-      movingFlaps.forEach(renderFlap);
+      flaps.forEach(renderFlap);
     }
     if (time < end) requestAnimationFrame(frame);
     else finishEnvelope();
