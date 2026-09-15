@@ -81,9 +81,10 @@
         <h2 class="t-script">When?</h2>
       </header>
 
-      <button class="date__heart" type="button" aria-label="Reveal the date">
+      <div class="date__heart">
         <img src="assets/img/date-heart.png" alt="" loading="lazy">
-      </button>
+        <canvas class="date__scratch" tabindex="0" role="button" aria-label="Scratch the heart to reveal the date"></canvas>
+      </div>
 
       <div class="date__when">
         <p class="t-lead">October 16, 2026</p>
@@ -98,6 +99,8 @@
       <div class="date__outline" aria-hidden="true">
         <img src="assets/img/date-outline.png" alt="" loading="lazy">
       </div>
+
+      <canvas class="date__burst" aria-hidden="true"></canvas>
     </section>
 
     <!-- 5. Program -->
