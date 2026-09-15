@@ -240,15 +240,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   backface-visibility: hidden;
 }
 .face img { position: absolute; max-width: none; }
-/* Mirrored paper on a side flap's shoulder. While the envelope is shut the photo's own crease
-   shadow shows there instead; the mirror takes over once the flap covering it has lifted. */
-.face__mirror {
-  position: absolute;
-  inset: 0;
-  visibility: hidden;
-}
-.envelope.is-open-top .face__mirror--top,
-.envelope.is-open-bottom .face__mirror--bottom { visibility: visible; }
 /* Shading runs smoothly across each strip, from the tone of the fold before it to the fold after,
    so a bent sheet reads as one curved surface instead of stepped slats. */
 .face::after {
@@ -259,13 +250,28 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   pointer-events: none;
 }
 /* The inside of the envelope: unprinted paper with a little fibre in it. */
-.face--back {
+.face--back,
+.envelope__inside {
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.37 0 0 0 0 0.3 0 0 0 0.12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
     linear-gradient(165deg, #f3ede3, #e0d6c5);
 }
 
-/* Wax seal: whole while sealed, then four pieces that leave with their flaps. */
+/* The back panel's inner side, behind every flap: seen through the mouth once the top flap lifts,
+   and darkening down toward the pocket the glued flaps form. */
+.envelope__inside {
+  position: absolute;
+  inset: 0;
+  transform: translateZ(-1px);
+}
+.envelope__inside::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(90, 64, 30, 0) 0%, rgba(90, 64, 30, 0.07) 30%, rgba(70, 48, 22, 0.2) 52%);
+}
+
+/* Wax seal: whole while sealed, then four pieces — the top two leave with the flap, the bottom two stay. */
 .seal-whole,
 .seal-piece {
   position: absolute;
