@@ -389,7 +389,13 @@ function finishEnvelope() {
   root.classList.remove('is-locked');
   window.scrollTo(0, 0);
   topbar.hidden = false;
-  if (!reduceMotion) topbar.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, easing: 'ease' });
+  // With the envelope out of frame, the header slides down into place from above the screen.
+  if (!reduceMotion) {
+    play(topbar, [
+      { transform: 'translate(-50%, -100%)' },
+      { transform: 'translate(-50%, 0)' },
+    ], { duration: 600, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+  }
 }
 
 function openEnvelope() {
