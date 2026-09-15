@@ -77,9 +77,14 @@ const GLUED_FLAPS = [
 // The 157px seal sits dead centre on the photo.
 const SEAL_BOX = { left: 50 - 7850 / 479.5, top: 50 - 7850 / 852, width: 15700 / 479.5, height: 15700 / 852 };
 
-// Seal-local percent: one jagged crack straight across the middle. The upper half reaches just
-// past it, so no seam shows while the seal is whole.
-const CRACK_LINE = [[0, 51], [8, 49.5], [16, 52.5], [25, 48.8], [34, 51.8], [43, 49.2], [51, 52.4], [60, 48.6], [69, 51.3], [78, 49.4], [88, 52.2], [100, 50.4]];
+// Seal-local percent: one crack across the middle, the way brittle wax snaps — nearly straight with
+// a slight tilt, small uneven kinks and a couple of short steps, not a regular zigzag. The upper
+// half reaches just past it, so no seam shows while the seal is whole.
+const CRACK_LINE = [
+  [0, 50.9], [4, 50.7], [9, 50.8], [13.5, 50.4], [18, 50.5], [22, 50.1], [27, 50.3], [31.5, 49.8],
+  [34, 50.6], [38, 50.3], [43, 50.1], [47.5, 50.2], [52, 49.7], [56, 49.9], [60.5, 49.5], [64, 49.7],
+  [68, 49.2], [70.5, 49.9], [75, 49.6], [80, 49.4], [84.5, 49.5], [89, 49.1], [94, 49.3], [100, 49],
+];
 const upperHalf = (overlap) => [[0, 0], [100, 0], ...[...CRACK_LINE].reverse().map(([x, y]) => [x, y + overlap])];
 const SEAL_HALVES = {
   upper: upperHalf(1.2),
