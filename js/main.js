@@ -463,9 +463,10 @@ const heartImg = heart.querySelector('img');
 const scratch = heart.querySelector('.date__scratch');
 const burst = date.querySelector('.date__burst');
 
-const SCRATCH_RADIUS = 22;
-const REVEAL_AT = 0.7; // share of the heart wiped before the rest dissolves on its own
-const FALLBACK_STROKE = 1600; // px of scratching that counts as "empty" when pixels can't be read
+// A wide brush and a 60% threshold keep it to a few swipes of the finger.
+const SCRATCH_RADIUS = 30;
+const REVEAL_AT = 0.6; // share of the heart wiped before the rest dissolves on its own
+const FALLBACK_STROKE = 1000; // px of scratching that counts as "empty" when pixels can't be read
 
 let scratchCtx = null;
 let heartPixels = null;
