@@ -21,29 +21,12 @@
       </button>
     </header>
 
-    <!-- 1. Envelope: lies over the cover; every flap is the paper photo cut along its crease -->
+    <!-- 1. Envelope: lies over the cover. main.js cuts each flap into bendable paper strips
+         and builds the wax seal with its cracks and pieces. -->
     <section class="screen screen--full envelope" id="envelope">
       <div class="envelope__shade"></div>
-      <div class="envelope__stage">
-        <div class="flap flap--left">
-          <img class="flap__front" src="assets/img/envelope-paper.jpg" alt="" fetchpriority="high">
-          <div class="flap__back"></div>
-        </div>
-        <div class="flap flap--right">
-          <img class="flap__front" src="assets/img/envelope-paper.jpg" alt="">
-          <div class="flap__back"></div>
-        </div>
-        <div class="flap flap--bottom">
-          <img class="flap__front" src="assets/img/envelope-paper.jpg" alt="">
-          <div class="flap__back"></div>
-          <div class="seal seal--bottom"><img src="assets/img/envelope-seal.png" alt=""></div>
-        </div>
-        <div class="flap flap--top">
-          <img class="flap__front" src="assets/img/envelope-paper.jpg" alt="">
-          <div class="flap__back"></div>
-          <div class="seal seal--top"><img src="assets/img/envelope-seal.png" alt=""></div>
-        </div>
-      </div>
+      <div class="envelope__stage"></div>
+      <div class="envelope__fx" aria-hidden="true"></div>
       <button class="envelope__open" type="button" aria-label="Open the invitation">
         <span class="envelope__hint t-body">Click to open</span>
       </button>

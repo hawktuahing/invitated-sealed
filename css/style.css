@@ -221,95 +221,100 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   perspective-origin: 50% 45%;
 }
 
-.flap {
+/* Each flap is a chain of paper strips built by main.js. Every strip hinges on the one
+   before it, so the sheet bends and sags instead of turning like a board. */
+.flap,
+.band {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  will-change: transform;
+  pointer-events: none;
 }
-.flap__front,
-.flap__back {
+.band { will-change: transform; }
+
+/* One side of a strip, sized to the strip so its GPU layer stays small. */
+.face {
+  position: absolute;
+  overflow: hidden;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.face img { position: absolute; max-width: none; }
+/* Shading runs smoothly across each strip, from the tone of the fold before it to the fold after,
+   so a bent sheet reads as one curved surface instead of stepped slats. */
+.face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(var(--shade-dir, to bottom), rgba(22, 14, 4, var(--shade-from, 0)), rgba(22, 14, 4, var(--shade-to, 0)));
+  pointer-events: none;
+}
+/* The inside of the envelope: unprinted paper with a little fibre in it. */
+.face--back {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.37 0 0 0 0 0.3 0 0 0 0.12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
+    linear-gradient(165deg, #f3ede3, #e0d6c5);
+}
+
+/* Wax seal: whole while sealed, then four pieces that leave with their flaps. */
+.seal-whole,
+.seal-piece {
+  position: absolute;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.seal-whole img,
+.seal-piece img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   max-width: none;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
 }
-.flap__front { object-fit: cover; background: var(--paper); }
-/* The inside of the envelope: plain paper, no print. */
-.flap__back { background: linear-gradient(160deg, #f1ebe0, #dcd2c2); }
+.seal-piece { visibility: hidden; }
+.envelope.is-split .seal-piece { visibility: visible; }
+/* Each broken piece casts a hairline shadow, so the gaps read as crevices in the wax. */
+.seal-piece { filter: drop-shadow(0 0.6px 0.8px rgba(0, 0, 0, 0.45)); }
 
-/* Crease lines measured off the photo (percent of the 479.5×852 box). Back faces are
-   the same outline mirrored, because they are turned 180° to face the other way. */
-.flap--left { transform-origin: 0 50%; }
-.flap--left .flap__front {
-  -webkit-clip-path: polygon(0 28.9%, 36.6% 46.48%, 0 65.3%);
-  clip-path: polygon(0 28.9%, 36.6% 46.48%, 0 65.3%);
-}
-.flap--left .flap__back {
-  transform: rotateY(180deg);
-  -webkit-clip-path: polygon(100% 28.9%, 63.4% 46.48%, 100% 65.3%);
-  clip-path: polygon(100% 28.9%, 63.4% 46.48%, 100% 65.3%);
-}
-
-.flap--right { transform-origin: 100% 50%; }
-.flap--right .flap__front {
-  -webkit-clip-path: polygon(100% 28.7%, 64% 46.83%, 100% 65.9%);
-  clip-path: polygon(100% 28.7%, 64% 46.83%, 100% 65.9%);
-}
-.flap--right .flap__back {
-  transform: rotateY(180deg);
-  -webkit-clip-path: polygon(0 28.7%, 36% 46.83%, 0 65.9%);
-  clip-path: polygon(0 28.7%, 36% 46.83%, 0 65.9%);
-}
-
-.flap--bottom { transform-origin: 50% 100%; transform: translateZ(1.5px); }
-.flap--bottom .flap__front {
-  -webkit-clip-path: polygon(0 64.79%, 50% 39.3%, 100% 65.38%, 100% 100%, 0 100%);
-  clip-path: polygon(0 64.79%, 50% 39.3%, 100% 65.38%, 100% 100%, 0 100%);
-}
-.flap--bottom .flap__back {
-  transform: rotateX(180deg);
-  -webkit-clip-path: polygon(0 35.21%, 50% 60.7%, 100% 34.62%, 100% 0, 0 0);
-  clip-path: polygon(0 35.21%, 50% 60.7%, 100% 34.62%, 100% 0, 0 0);
-}
-
-.flap--top { transform-origin: 50% 0; transform: translateZ(3px); }
-.flap--top .flap__front {
-  -webkit-clip-path: polygon(0 0, 100% 0, 100% 29.18%, 50% 53.64%, 0 29.4%);
-  clip-path: polygon(0 0, 100% 0, 100% 29.18%, 50% 53.64%, 0 29.4%);
-}
-.flap--top .flap__back {
-  transform: rotateX(180deg);
-  -webkit-clip-path: polygon(0 100%, 100% 100%, 100% 70.82%, 50% 46.36%, 0 70.6%);
-  clip-path: polygon(0 100%, 100% 100%, 100% 70.82%, 50% 46.36%, 0 70.6%);
-}
-
-/* The wax seal breaks along a jagged line: one half leaves with each flap. */
-.seal {
+/* Cracks are masked by the wax itself so they never run out onto the paper. */
+.seal-cracks {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: calc(157 / 479.5 * 100%);
-  height: calc(157 / 852 * 100%);
-  transform: translate(-50%, -50%) translateZ(1px);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-mask: url("../assets/img/envelope-seal.png") center / 100% 100% no-repeat;
+  mask: url("../assets/img/envelope-seal.png") center / 100% 100% no-repeat;
 }
-/* The bottom half rides on the bottom flap, which lies under the top flap's tip — lift it clear.
-   The top half sits higher still and overlaps the crack by a hair, so no seam shows while sealed. */
-.seal--bottom { transform: translate(-50%, -50%) translateZ(2.5px); }
-.seal--top { transform: translate(-50%, -50%) translateZ(3px); }
-.seal img { width: 100%; height: 100%; max-width: none; }
-.seal--top img {
-  -webkit-clip-path: polygon(0 0, 100% 0, 100% 51.5%, 86% 48.5%, 71% 55.5%, 57% 47.5%, 44% 54.5%, 30% 48.5%, 15% 53.5%, 0 50.5%);
-  clip-path: polygon(0 0, 100% 0, 100% 51.5%, 86% 48.5%, 71% 55.5%, 57% 47.5%, 44% 54.5%, 30% 48.5%, 15% 53.5%, 0 50.5%);
+.seal-cracks path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+/* A crack is a dark crevice with a faint lit lip on its upper edge. */
+.crack__glint { stroke: rgba(255, 236, 190, 0.3); stroke-width: 0.6px; transform: translate(-0.25px, -0.6px); }
+.crack__core { stroke: rgba(6, 20, 15, 0.95); stroke-width: 0.9px; }
+
+/* Wax crumbs and the dropped shard fly in screen space, above the paper. */
+.envelope__fx {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
-.seal--bottom img {
-  -webkit-clip-path: polygon(0 49%, 15% 52%, 30% 47%, 44% 53%, 57% 46%, 71% 54%, 86% 47%, 100% 50%, 100% 100%, 0 100%);
-  clip-path: polygon(0 49%, 15% 52%, 30% 47%, 44% 53%, 57% 46%, 71% 54%, 86% 47%, 100% 50%, 100% 100%, 0 100%);
+.chip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 45% 55% 60% 40%;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+}
+.chip--wax { background: radial-gradient(circle at 35% 30%, #4c8a72, #123f33 65%, #0a2a22); }
+.chip--gold { background: radial-gradient(circle at 35% 30%, #f2dca2, #b58b45 70%); }
+.shard { position: absolute; }
+.shard img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
 }
 
 .envelope__open {
