@@ -459,7 +459,8 @@ const coverCard = journey.querySelector('.cover__card');
 const coverHint = journey.querySelector('.scroll-hint');
 const welcomeCard = journey.querySelector('.welcome__card');
 
-const CLIP_FROM = 0.08; // share of the track scrolled before the clip starts moving
+const JOURNEY_HOLD = 80 / (260 + 80); // last share of the track that just holds on "Dear guest" (--hold / (--scrub + --hold))
+const CLIP_FROM = 0.08; // share of the scrub scrolled before the clip starts moving
 const CLIP_TO = 0.9; // …and by when it has reached its last frame
 const clamp01 = (x) => Math.min(Math.max(x, 0), 1);
 const smoothstep = (from, to, x) => {
@@ -498,7 +499,8 @@ function seekClip() {
 function renderJourney() {
   journeyQueued = false;
   const track = journey.offsetHeight - journeyStage.offsetHeight;
-  const progress = track > 0 ? clamp01(-journey.getBoundingClientRect().top / track) : 0;
+  const scrolled = track > 0 ? clamp01(-journey.getBoundingClientRect().top / track) : 0;
+  const progress = clamp01(scrolled / (1 - JOURNEY_HOLD));
   const clip = clamp01((progress - CLIP_FROM) / (CLIP_TO - CLIP_FROM));
 
   const namesOut = smoothstep(0, 0.1, progress);
