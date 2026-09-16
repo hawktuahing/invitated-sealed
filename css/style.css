@@ -66,8 +66,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* On a phone the page fills the screen edge to edge instead of the 393px column of the mock. */
 @media (max-width: 600px) {
   :root { --full-h: max(640px, 100svh); }
-  .app,
-  .topbar { max-width: none; }
+  .app { max-width: none; }
 }
 
 /* ---------- Type ---------- */
@@ -177,6 +176,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   transition: transform 0.35s ease, background-color 0.35s ease, color 0.35s ease;
 }
 .topbar.is-hidden { transform: translate(-50%, -100%); }
+/* Edge to edge on a phone, like the page (declared after .topbar so it wins). */
+@media (max-width: 600px) {
+  .topbar { max-width: none; }
+}
 .topbar__title { font-size: 20px; line-height: 24px; letter-spacing: -0.01em; }
 
 .sound {
@@ -333,11 +336,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 
 /* ---------- 2–3. Cover → welcome ---------- */
-/* The track is the pinned screen plus the scroll distance the clip plays over. */
+/* The track is the pinned screen plus the scroll the clip plays over: its motion, then its closing
+   freeze frame, which holds on "Dear guest" for a swipe or two. Keep JOURNEY_* in main.js in step. */
 .journey {
   --stage-h: var(--full-h);
+  --motion: 260svh;
+  --freeze: 100svh;
   position: relative;
-  height: calc(var(--stage-h) + 260svh);
+  height: calc(var(--stage-h) + var(--motion) + var(--freeze));
   background: #2e2f27;
 }
 .journey__stage {
@@ -359,7 +365,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .journey__end {
   position: absolute;
   left: 0;
-  bottom: 0;
+  top: calc(var(--motion) + 20svh);
   height: var(--stage-h);
   pointer-events: none;
 }

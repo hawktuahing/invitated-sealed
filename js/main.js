@@ -459,8 +459,13 @@ const coverCard = journey.querySelector('.cover__card');
 const coverHint = journey.querySelector('.scroll-hint');
 const welcomeCard = journey.querySelector('.welcome__card');
 
-const CLIP_FROM = 0.08; // share of the track scrolled before the clip starts moving
-const CLIP_TO = 0.9; // …and by when it has reached its last frame
+// Scroll distances in svh, as in .journey's --motion and --freeze.
+const JOURNEY_MOTION = 260;
+const JOURNEY_FREEZE = 100;
+const CLIP_FROM = 21; // scrolled before the doors start to move, as the names fade out
+const CLIP_MOTION_END = 234; // where the camera has arrived at the alley
+// Where the clip's own motion stops and its closing freeze frame begins (measured in the edit).
+const CLIP_FREEZE_AT = 8.03;
 const clamp01 = (x) => Math.min(Math.max(x, 0), 1);
 const smoothstep = (from, to, x) => {
   const t = clamp01((x - from) / (to - from));
@@ -469,7 +474,7 @@ const smoothstep = (from, to, x) => {
 
 // The clip may have loaded before this script ran, in which case 'loadeddata' has already fired.
 let clipReady = journeyVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
-let clipTarget = 0; // 0…1 through the clip, from the scroll position
+let clipTarget = 0; // seconds into the clip, from the scroll position
 let clipShown = 0; // seconds, eased toward the target so the scrub stays smooth
 let clipSeeking = false;
 let journeyQueued = false;
@@ -483,7 +488,7 @@ function seekClip() {
       clipSeeking = false;
       return;
     }
-    const target = clipTarget * (duration - 0.05);
+    const target = Math.min(clipTarget, duration - 0.05);
     const gap = target - clipShown;
     clipShown = reduceMotion || Math.abs(gap) < 0.02 ? target : clipShown + gap * 0.25;
     // One seek at a time: queueing more while the decoder is busy makes the scrub lag behind.
@@ -498,22 +503,26 @@ function seekClip() {
 function renderJourney() {
   journeyQueued = false;
   const track = journey.offsetHeight - journeyStage.offsetHeight;
-  const progress = track > 0 ? clamp01(-journey.getBoundingClientRect().top / track) : 0;
-  const clip = clamp01((progress - CLIP_FROM) / (CLIP_TO - CLIP_FROM));
+  const scrolled = track > 0 ? clamp01(-journey.getBoundingClientRect().top / track) : 0;
+  const at = scrolled * (JOURNEY_MOTION + JOURNEY_FREEZE); // svh scrolled into the track
+  const motion = clamp01((at - CLIP_FROM) / (CLIP_MOTION_END - CLIP_FROM));
+  const freeze = clamp01((at - CLIP_MOTION_END) / (JOURNEY_MOTION + JOURNEY_FREEZE - CLIP_MOTION_END));
 
-  const namesOut = smoothstep(0, 0.1, progress);
+  const namesOut = smoothstep(0, 26, at);
   coverCard.style.opacity = 1 - namesOut;
   coverCard.style.transform = `translateY(${(-24 * namesOut).toFixed(1)}px)`;
-  coverHint.style.opacity = 1 - smoothstep(0, 0.05, progress);
-  const welcomeIn = smoothstep(0.9, 0.98, progress);
+  coverHint.style.opacity = 1 - smoothstep(0, 13, at);
+  // "Dear guest" arrives with the freeze frame and stays through it.
+  const welcomeIn = smoothstep(CLIP_MOTION_END, CLIP_MOTION_END + 20, at);
   welcomeCard.style.opacity = welcomeIn;
   welcomeCard.style.transform = `translateY(${(16 * (1 - welcomeIn)).toFixed(1)}px)`;
-  // The dimming lifts while the clip plays and returns under the text at either end.
-  journeyShade.style.opacity = 1 - 0.7 * Math.sin(Math.PI * clip);
+  // The dimming lifts while the doors open and the camera travels, and returns under the text.
+  journeyShade.style.opacity = 1 - 0.7 * Math.sin(Math.PI * motion);
   // If the clip can't be shown, cross-fade between its first and last frames instead.
-  journeyLast.style.opacity = clipReady ? 0 : smoothstep(0.3, 0.7, clip);
+  journeyLast.style.opacity = clipReady ? 0 : smoothstep(0.3, 0.7, motion);
 
-  clipTarget = clip;
+  const duration = journeyVideo.duration || CLIP_FREEZE_AT;
+  clipTarget = motion < 1 ? motion * CLIP_FREEZE_AT : CLIP_FREEZE_AT + freeze * Math.max(duration - CLIP_FREEZE_AT, 0);
   seekClip();
 }
 
