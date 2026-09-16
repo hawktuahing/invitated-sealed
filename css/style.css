@@ -322,20 +322,37 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   white-space: nowrap;
 }
 
-/* ---------- 2. Cover ---------- */
-.cover {
+/* ---------- 2–3. Cover → welcome ---------- */
+/* The track is the pinned screen plus the scroll distance the clip plays over. */
+.journey {
+  --stage-h: clamp(640px, 100svh, var(--screen-h));
+  position: relative;
+  height: calc(var(--stage-h) + 260svh);
+  background: #2e2f27;
+}
+.journey__stage {
+  position: sticky;
+  top: 0;
+  height: var(--stage-h);
+  overflow: hidden;
+  isolation: isolate;
   display: grid;
   place-items: center;
-  background: #3d4136;
 }
-/* Background and clip share one box, so the clip's last frame lands exactly on the background. */
-.cover__bg,
-.cover__video { --dx: 0px; aspect-ratio: 1152 / 2048; }
-/* Above the shade (the clip plays undimmed), below the card. */
-.cover__video { z-index: -1; }
-.cover.is-intro .cover__card,
-.cover.is-intro .scroll-hint { opacity: 0; }
-
+.journey__stage > .glass { grid-area: 1 / 1; }
+/* Frames and clip share one box, so the clip starts and ends exactly on them. */
+.journey__frame,
+.journey__video { aspect-ratio: 1152 / 2048; }
+/* Stand-in for the last frame, only while the clip can't be shown. */
+.journey__frame--last { opacity: 0; }
+/* Anchor for "Scroll down": where the clip has finished and "Dear guest" is up. */
+.journey__end {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: var(--stage-h);
+  pointer-events: none;
+}
 
 .cover__card { padding: 24px 60px; }
 .cover__group { display: flex; flex-direction: column; align-items: center; gap: 8px; }
@@ -356,29 +373,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .scroll-hint img { width: 52px; height: 32px; }
 
-/* ---------- 3. Welcome ---------- */
-.welcome {
-  display: grid;
-  place-items: center;
-  background: #3a3a2e;
-}
-.welcome__media {
-  position: absolute;
-  z-index: -1;
-  top: 50%;
-  left: 50%;
-  width: 506.183px;
-  height: 899.404px;
-  transform: translate(calc(-50% + 0.59px), -50%);
-}
-.welcome__media img { width: 100%; height: 100%; max-width: none; }
-.welcome__media::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.36) 0%, rgba(0, 0, 0, 0.67) 60.1%, rgba(0, 0, 0, 0.72) 100%);
-}
-.welcome__card { width: 266px; padding: 24px; }
+.welcome__card { width: 266px; padding: 24px; opacity: 0; }
 .welcome__title { color: var(--cream); line-height: 50px; white-space: nowrap; }
 
 /* ---------- 4. Wedding date ---------- */

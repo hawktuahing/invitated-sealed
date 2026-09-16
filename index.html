@@ -32,46 +32,44 @@
       </button>
     </section>
 
-    <!-- 2. Cover: the doors → alley clip plays once the envelope has gone; the background is its
-         last frame, so the clip fades straight into the invitation. -->
-    <section class="screen screen--full cover is-intro" id="cover">
-      <img class="bg cover__bg" src="assets/img/cover-bg.jpg" alt="">
-      <div class="shade"></div>
-      <video class="bg cover__video" src="assets/vids/intro.mp4" poster="assets/vids/intro-poster.jpg"
-             muted playsinline preload="auto" disablepictureinpicture aria-hidden="true"></video>
+    <!-- 2–3. Cover → welcome: a tall scroll track with the screen pinned. Scrolling plays the doors →
+         alley clip frame by frame — the names give way to the clip, which lands on "Dear guest" —
+         and scrolling back runs it in reverse. The frames are the clip's first and last. -->
+    <section class="journey" id="cover">
+      <div class="journey__stage">
+        <img class="bg journey__frame" src="assets/img/journey-first.jpg" alt="" fetchpriority="high">
+        <video class="bg journey__video" src="assets/vids/intro.mp4" poster="assets/img/journey-first.jpg"
+               muted playsinline preload="auto" disablepictureinpicture aria-hidden="true"></video>
+        <img class="bg journey__frame journey__frame--last" src="assets/img/journey-last.jpg" alt="" loading="lazy">
+        <div class="shade journey__shade"></div>
 
-      <div class="glass cover__card">
-        <div class="cover__group">
-          <img class="ornament" src="assets/decor/ornament.png" alt="">
-          <p class="t-body">Wedding Day</p>
+        <div class="glass cover__card">
+          <div class="cover__group">
+            <img class="ornament" src="assets/decor/ornament.png" alt="">
+            <p class="t-body">Wedding Day</p>
+          </div>
+          <img class="divider" src="assets/decor/divider.svg" alt="">
+          <h1 class="t-script cover__names">Oliver<br>&amp;<br>Amelia</h1>
+          <img class="divider" src="assets/decor/divider.svg" alt="">
+          <div class="cover__group">
+            <p class="t-body">16.10.2026</p>
+            <img class="ornament ornament--flip" src="assets/decor/ornament.png" alt="">
+          </div>
         </div>
-        <img class="divider" src="assets/decor/divider.svg" alt="">
-        <h1 class="t-script cover__names">Oliver<br>&amp;<br>Amelia</h1>
-        <img class="divider" src="assets/decor/divider.svg" alt="">
-        <div class="cover__group">
-          <p class="t-body">16.10.2026</p>
+
+        <a class="scroll-hint" href="#welcome">
+          <span class="t-small">Scroll down</span>
+          <img src="assets/decor/scroll-arrow.png" alt="" width="52" height="32">
+        </a>
+
+        <div class="glass welcome__card">
+          <img class="ornament" src="assets/decor/ornament.png" alt="">
+          <h2 class="t-script welcome__title">Dear guest,</h2>
+          <p class="t-body">We are delighted to invite you to share one of the most important days<br>of our lives with us.<br>Your presence will make this day truly special.</p>
           <img class="ornament ornament--flip" src="assets/decor/ornament.png" alt="">
         </div>
       </div>
-
-      <a class="scroll-hint" href="#welcome">
-        <span class="t-small">Scroll down</span>
-        <img src="assets/decor/scroll-arrow.png" alt="" width="52" height="32">
-      </a>
-    </section>
-
-    <!-- 3. Welcome -->
-    <section class="screen welcome" id="welcome">
-      <div class="welcome__media">
-        <img src="assets/img/welcome-bg.jpg" alt="" loading="lazy">
-      </div>
-
-      <div class="glass welcome__card">
-        <img class="ornament" src="assets/decor/ornament.png" alt="">
-        <h2 class="t-script welcome__title">Dear guest,</h2>
-        <p class="t-body">We are delighted to invite you to share one of the most important days<br>of our lives with us.<br>Your presence will make this day truly special.</p>
-        <img class="ornament ornament--flip" src="assets/decor/ornament.png" alt="">
-      </div>
+      <span class="journey__end" id="welcome"></span>
     </section>
 
     <!-- 4. Wedding date -->

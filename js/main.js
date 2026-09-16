@@ -32,7 +32,6 @@ window.addEventListener('scroll', () => {
 // open carrying the upper half of the seal, and once it has left the top of the screen the glued
 // body of the envelope slides away down it. Add ?slowmo=4 to the URL to watch it slowly.
 const envelope = document.getElementById('envelope');
-const cover = document.getElementById('cover');
 const envelopeStage = envelope.querySelector('.envelope__stage');
 const envelopeFx = envelope.querySelector('.envelope__fx');
 
@@ -390,46 +389,9 @@ function slideBodyAway() {
   }).finished;
 }
 
-// The doors → alley clip, played once as the envelope slides away. Resolves when it has ended, or
-// straight away if it can't play (low power mode, failed load); a stalled clip doesn't hold things up.
-const introVideo = cover.querySelector('.cover__video');
-let introPlayback = null;
-function playIntro() {
-  introPlayback ??= new Promise((resolve) => {
-    introVideo.addEventListener('ended', resolve, { once: true });
-    introVideo.addEventListener('error', resolve, { once: true });
-    introVideo.playbackRate = 1 / slowmo;
-    introVideo.play().then(() => {
-      setTimeout(resolve, (introVideo.duration || 8) * 1000 * slowmo + 4000);
-    }, resolve);
-  });
-  return introPlayback;
-}
-
-// The clip ends on the cover's own background, so it simply fades out as the invitation card settles in.
-function revealCover() {
-  cover.classList.remove('is-intro');
-  root.classList.remove('is-locked');
-  if (reduceMotion) {
-    introVideo.hidden = true;
-    return;
-  }
-  play(cover.querySelector('.cover__card'), [
-    { opacity: 0, transform: 'translateY(12px) scale(0.97)' },
-    { opacity: 1, transform: 'none' },
-  ], { duration: 1100, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' });
-  play(cover.querySelector('.scroll-hint'), [{ opacity: 0 }, { opacity: 1 }], {
-    duration: 900, delay: 500, easing: 'ease', fill: 'backwards',
-  });
-  play(introVideo, [{ opacity: 1 }, { opacity: 0 }], {
-    duration: 900, easing: 'ease-in-out', fill: 'forwards',
-  }).finished.then(() => {
-    introVideo.hidden = true;
-  });
-}
-
 function finishEnvelope() {
   envelope.hidden = true;
+  root.classList.remove('is-locked');
   window.scrollTo(0, 0);
   topbar.hidden = false;
   // With the envelope out of frame, the header slides down into place from above the screen.
@@ -445,16 +407,13 @@ function openEnvelope() {
   envelope.classList.add('is-opening');
 
   if (reduceMotion) {
-    envelope.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished.then(() => {
-      finishEnvelope();
-      revealCover();
-    });
+    envelope.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished.then(finishEnvelope);
     return;
   }
 
   play(envelope.querySelector('.envelope__hint'), [{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' });
 
-  // As the flap lifts, the first frame of the clip shows through the mouth and brightens.
+  // As the flap lifts, the names over the closed doors show through the mouth and brighten.
   play(envelope.querySelector('.envelope__shade'), [{ opacity: 1 }, { opacity: 0.45 }], {
     duration: 900, delay: T.lift, easing: 'ease-out', fill: 'forwards',
   });
@@ -480,7 +439,6 @@ function openEnvelope() {
     }
     if (time > T.lift + 300 && (time >= SLIDE_LATEST || topFlapGone())) {
       slideBodyAway().then(finishEnvelope);
-      playIntro().then(revealCover);
       return;
     }
     requestAnimationFrame(frame);
@@ -489,6 +447,102 @@ function openEnvelope() {
 }
 
 envelope.querySelector('.envelope__open').addEventListener('click', openEnvelope, { once: true });
+
+// Cover → welcome: how far the pinned screen has been scrolled drives the doors → alley clip frame by
+// frame. The names fade out as it starts, "Dear guest" fades in once it has landed on the alley.
+const journey = document.getElementById('cover');
+const journeyStage = journey.querySelector('.journey__stage');
+const journeyVideo = journey.querySelector('.journey__video');
+const journeyLast = journey.querySelector('.journey__frame--last');
+const journeyShade = journey.querySelector('.journey__shade');
+const coverCard = journey.querySelector('.cover__card');
+const coverHint = journey.querySelector('.scroll-hint');
+const welcomeCard = journey.querySelector('.welcome__card');
+
+const CLIP_FROM = 0.08; // share of the track scrolled before the clip starts moving
+const CLIP_TO = 0.9; // …and by when it has reached its last frame
+const clamp01 = (x) => Math.min(Math.max(x, 0), 1);
+const smoothstep = (from, to, x) => {
+  const t = clamp01((x - from) / (to - from));
+  return t * t * (3 - 2 * t);
+};
+
+// The clip may have loaded before this script ran, in which case 'loadeddata' has already fired.
+let clipReady = journeyVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+let clipTarget = 0; // 0…1 through the clip, from the scroll position
+let clipShown = 0; // seconds, eased toward the target so the scrub stays smooth
+let clipSeeking = false;
+let journeyQueued = false;
+
+function seekClip() {
+  if (clipSeeking) return;
+  clipSeeking = true;
+  requestAnimationFrame(function step() {
+    const duration = journeyVideo.duration;
+    if (!clipReady || !duration) {
+      clipSeeking = false;
+      return;
+    }
+    const target = clipTarget * (duration - 0.05);
+    const gap = target - clipShown;
+    clipShown = reduceMotion || Math.abs(gap) < 0.02 ? target : clipShown + gap * 0.25;
+    // One seek at a time: queueing more while the decoder is busy makes the scrub lag behind.
+    if (!journeyVideo.seeking && Math.abs(journeyVideo.currentTime - clipShown) > 0.5 / 30) {
+      journeyVideo.currentTime = clipShown;
+    }
+    if (clipShown !== target || journeyVideo.seeking) requestAnimationFrame(step);
+    else clipSeeking = false;
+  });
+}
+
+function renderJourney() {
+  journeyQueued = false;
+  const track = journey.offsetHeight - journeyStage.offsetHeight;
+  const progress = track > 0 ? clamp01(-journey.getBoundingClientRect().top / track) : 0;
+  const clip = clamp01((progress - CLIP_FROM) / (CLIP_TO - CLIP_FROM));
+
+  const namesOut = smoothstep(0, 0.1, progress);
+  coverCard.style.opacity = 1 - namesOut;
+  coverCard.style.transform = `translateY(${(-24 * namesOut).toFixed(1)}px)`;
+  coverHint.style.opacity = 1 - smoothstep(0, 0.05, progress);
+  const welcomeIn = smoothstep(0.9, 0.98, progress);
+  welcomeCard.style.opacity = welcomeIn;
+  welcomeCard.style.transform = `translateY(${(16 * (1 - welcomeIn)).toFixed(1)}px)`;
+  // The dimming lifts while the clip plays and returns under the text at either end.
+  journeyShade.style.opacity = 1 - 0.7 * Math.sin(Math.PI * clip);
+  // If the clip can't be shown, cross-fade between its first and last frames instead.
+  journeyLast.style.opacity = clipReady ? 0 : smoothstep(0.3, 0.7, clip);
+
+  clipTarget = clip;
+  seekClip();
+}
+
+function queueJourney() {
+  if (journeyQueued) return;
+  journeyQueued = true;
+  requestAnimationFrame(renderJourney);
+}
+
+journeyVideo.addEventListener('loadeddata', () => {
+  clipReady = true;
+  queueJourney();
+});
+journeyVideo.addEventListener('error', () => {
+  clipReady = false;
+  queueJourney();
+});
+window.addEventListener('scroll', queueJourney, { passive: true });
+window.addEventListener('resize', queueJourney);
+renderJourney();
+
+// iOS only fetches and seeks a video after it has played from a user gesture: tapping the
+// envelope is that gesture, so play and pause at once, invisibly, on the first frame.
+envelope.querySelector('.envelope__open').addEventListener('click', () => {
+  journeyVideo.play().then(() => {
+    journeyVideo.pause();
+    journeyVideo.currentTime = 0;
+  }, () => {});
+}, { once: true });
 
 // Scratch card: wiping the heart away reveals the date, and once it is empty a party popper fires from below.
 const date = document.getElementById('date');
