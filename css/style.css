@@ -323,14 +323,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 
 /* ---------- 2–3. Cover → welcome ---------- */
-/* The track is the pinned screen plus the scroll distance the clip plays over, then a short hold
-   on "Dear guest" before the next screen comes up. Keep JOURNEY_HOLD in main.js in step. */
+/* The track is the pinned screen plus the scroll distance the clip plays over. */
 .journey {
   --stage-h: clamp(640px, 100svh, var(--screen-h));
-  --scrub: 260svh;
-  --hold: 80svh;
   position: relative;
-  height: calc(var(--stage-h) + var(--scrub) + var(--hold));
+  height: calc(var(--stage-h) + 260svh);
   background: #2e2f27;
 }
 .journey__stage {
@@ -352,7 +349,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .journey__end {
   position: absolute;
   left: 0;
-  top: var(--scrub);
+  bottom: 0;
   height: var(--stage-h);
   pointer-events: none;
 }
