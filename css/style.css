@@ -1,5 +1,8 @@
 /* ---------- Tokens (from Figma) ---------- */
 :root {
+  /* Full-screen height: capped at the mock's 852px only when the page is shown as a phone-sized
+     column on a wide screen; on an actual phone it is the whole screen. */
+  --full-h: clamp(640px, 100svh, 852px);
   --page: #eeeae3;
   --paper: #efebe4;
   --cream: #e2d9c8;
@@ -57,7 +60,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* Envelope and cover fill the phone screen instead of the fixed mock height. */
 .screen--full {
   min-height: 0;
-  height: clamp(640px, 100svh, var(--screen-h));
+  height: var(--full-h);
+}
+
+/* On a phone the page fills the screen edge to edge instead of the 393px column of the mock. */
+@media (max-width: 600px) {
+  :root { --full-h: max(640px, 100svh); }
+  .app,
+  .topbar { max-width: none; }
 }
 
 /* ---------- Type ---------- */
@@ -325,7 +335,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* ---------- 2–3. Cover → welcome ---------- */
 /* The track is the pinned screen plus the scroll distance the clip plays over. */
 .journey {
-  --stage-h: clamp(640px, 100svh, var(--screen-h));
+  --stage-h: var(--full-h);
   position: relative;
   height: calc(var(--stage-h) + 260svh);
   background: #2e2f27;
