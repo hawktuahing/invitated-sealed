@@ -390,9 +390,46 @@ function slideBodyAway() {
   }).finished;
 }
 
+// The doors → alley clip, played once as the envelope slides away. Resolves when it has ended, or
+// straight away if it can't play (low power mode, failed load); a stalled clip doesn't hold things up.
+const introVideo = cover.querySelector('.cover__video');
+let introPlayback = null;
+function playIntro() {
+  introPlayback ??= new Promise((resolve) => {
+    introVideo.addEventListener('ended', resolve, { once: true });
+    introVideo.addEventListener('error', resolve, { once: true });
+    introVideo.playbackRate = 1 / slowmo;
+    introVideo.play().then(() => {
+      setTimeout(resolve, (introVideo.duration || 8) * 1000 * slowmo + 4000);
+    }, resolve);
+  });
+  return introPlayback;
+}
+
+// The clip ends on the cover's own background, so it simply fades out as the invitation card settles in.
+function revealCover() {
+  cover.classList.remove('is-intro');
+  root.classList.remove('is-locked');
+  if (reduceMotion) {
+    introVideo.hidden = true;
+    return;
+  }
+  play(cover.querySelector('.cover__card'), [
+    { opacity: 0, transform: 'translateY(12px) scale(0.97)' },
+    { opacity: 1, transform: 'none' },
+  ], { duration: 1100, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' });
+  play(cover.querySelector('.scroll-hint'), [{ opacity: 0 }, { opacity: 1 }], {
+    duration: 900, delay: 500, easing: 'ease', fill: 'backwards',
+  });
+  play(introVideo, [{ opacity: 1 }, { opacity: 0 }], {
+    duration: 900, easing: 'ease-in-out', fill: 'forwards',
+  }).finished.then(() => {
+    introVideo.hidden = true;
+  });
+}
+
 function finishEnvelope() {
   envelope.hidden = true;
-  root.classList.remove('is-locked');
   window.scrollTo(0, 0);
   topbar.hidden = false;
   // With the envelope out of frame, the header slides down into place from above the screen.
@@ -408,22 +445,18 @@ function openEnvelope() {
   envelope.classList.add('is-opening');
 
   if (reduceMotion) {
-    envelope.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished.then(finishEnvelope);
+    envelope.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished.then(() => {
+      finishEnvelope();
+      revealCover();
+    });
     return;
   }
 
   play(envelope.querySelector('.envelope__hint'), [{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' });
 
-  // As the flap lifts, the invitation shows through the mouth, brightens and settles in underneath.
+  // As the flap lifts, the first frame of the clip shows through the mouth and brightens.
   play(envelope.querySelector('.envelope__shade'), [{ opacity: 1 }, { opacity: 0.45 }], {
     duration: 900, delay: T.lift, easing: 'ease-out', fill: 'forwards',
-  });
-  play(cover.querySelector('.cover__card'), [
-    { transform: 'translateY(-12px) scale(0.97)', opacity: 0.7 },
-    { transform: 'none', opacity: 1 },
-  ], { duration: 1800, delay: T.lift, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)', fill: 'backwards' });
-  play(cover.querySelector('.cover__bg'), [{ scale: '1.06' }, { scale: '1' }], {
-    duration: 2600, delay: T.lift, easing: 'cubic-bezier(0.2, 0.6, 0.2, 1)', fill: 'backwards',
   });
 
   const SUBSTEPS = 4;
@@ -447,6 +480,7 @@ function openEnvelope() {
     }
     if (time > T.lift + 300 && (time >= SLIDE_LATEST || topFlapGone())) {
       slideBodyAway().then(finishEnvelope);
+      playIntro().then(revealCover);
       return;
     }
     requestAnimationFrame(frame);
@@ -645,6 +679,26 @@ function firePopper() {
   }
 
   requestAnimationFrame(frame);
+}
+
+// Program veil: loads as the screen approaches, parts once when half of it is in view, then goes away.
+const veil = document.querySelector('.program__veil');
+if (reduceMotion) {
+  veil.hidden = true;
+} else {
+  new IntersectionObserver(([entry], observer) => {
+    if (!entry.isIntersecting) return;
+    observer.disconnect();
+    veil.preload = 'auto';
+  }, { rootMargin: '100% 0px' }).observe(veil.parentElement);
+
+  new IntersectionObserver(([entry], observer) => {
+    if (!entry.isIntersecting) return;
+    observer.disconnect();
+    veil.addEventListener('ended', () => { veil.hidden = true; }, { once: true });
+    veil.playbackRate = 1 / slowmo;
+    veil.play().catch(() => { veil.hidden = true; });
+  }, { threshold: 0.5 }).observe(veil.parentElement);
 }
 
 // Music toggle: tracks state only until a track is chosen.

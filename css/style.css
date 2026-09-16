@@ -328,7 +328,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   place-items: center;
   background: #3d4136;
 }
-.cover__bg { --dx: 5.95px; }
+/* Background and clip share one box, so the clip's last frame lands exactly on the background. */
+.cover__bg,
+.cover__video { --dx: 0px; aspect-ratio: 1152 / 2048; }
+/* Above the shade (the clip plays undimmed), below the card. */
+.cover__video { z-index: -1; }
+.cover.is-intro .cover__card,
+.cover.is-intro .scroll-hint { opacity: 0; }
 
 
 .cover__card { padding: 24px 60px; }
@@ -490,6 +496,16 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .program {
   background: var(--green);
   color: var(--cream);
+}
+.program__veil {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  mix-blend-mode: screen;
+  pointer-events: none;
 }
 .program__title {
   position: absolute;

@@ -32,10 +32,13 @@
       </button>
     </section>
 
-    <!-- 2. Cover -->
-    <section class="screen screen--full cover" id="cover">
+    <!-- 2. Cover: the doors → alley clip plays once the envelope has gone; the background is its
+         last frame, so the clip fades straight into the invitation. -->
+    <section class="screen screen--full cover is-intro" id="cover">
       <img class="bg cover__bg" src="assets/img/cover-bg.jpg" alt="">
       <div class="shade"></div>
+      <video class="bg cover__video" src="assets/vids/intro.mp4" poster="assets/vids/intro-poster.jpg"
+             muted playsinline preload="auto" disablepictureinpicture aria-hidden="true"></video>
 
       <div class="glass cover__card">
         <div class="cover__group">
@@ -139,6 +142,10 @@
           <img class="divider" src="assets/decor/divider.svg" alt="">
         </li>
       </ol>
+
+      <!-- White veil that parts to free the centre; its black ground drops out in screen blending. -->
+      <video class="program__veil" src="assets/vids/veil.mp4" poster="assets/vids/veil-poster.jpg"
+             muted playsinline preload="none" disablepictureinpicture aria-hidden="true"></video>
     </section>
 
     <!-- 6. Location -->
