@@ -195,6 +195,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .sound img { transition: filter 0.35s ease; }
 
+.sound[aria-pressed="false"] img { opacity: 0.45; }
+
 /* Over the cream screens white type disappears, so the bar flips to ink. */
 .topbar.is-light { background: rgba(226, 217, 200, 0.6); color: var(--ink); }
 .topbar.is-light .sound { border-color: rgba(23, 60, 53, 0.2); }
@@ -485,6 +487,24 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .date__heart.is-ready img { visibility: hidden; }
 
+/* Written on the wax heart itself, so it's clear it is meant to be rubbed away. */
+.date__scrub {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 16px;
+  line-height: 20px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+.date.is-scratching .date__scrub { opacity: 0; }
+
 .date__burst {
   position: absolute;
   inset: 0;
@@ -511,7 +531,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .date.is-revealed .date__confetti { opacity: 0.7; visibility: visible; transition: opacity 1.6s ease 0.8s; }
 
 @media (prefers-reduced-motion: reduce) {
-  .date__frame, .date__hint, .date__when, .date__calendar, .date__confetti { transition: none !important; }
+  .date__frame, .date__hint, .date__when, .date__calendar, .date__confetti, .date__scrub { transition: none !important; }
 }
 
 /* ---------- 5. Program ---------- */

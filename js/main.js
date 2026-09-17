@@ -560,6 +560,7 @@ renderJourney();
 // iOS only fetches and seeks a video after it has played from a user gesture: tapping the
 // envelope is that gesture, so play and pause each scrubbed video at once, invisibly, on its first frame.
 envelope.querySelector('.envelope__open').addEventListener('click', () => {
+  startMusic();
   document.querySelectorAll('.journey__video, .program__veil').forEach((video) => {
     video.play().then(() => {
       video.pause();
@@ -641,6 +642,8 @@ function checkProgress(force) {
 async function revealDate() {
   if (revealed) return;
   revealed = true;
+  unlockDate();
+  dateWatcher.disconnect();
   date.classList.add('is-scratching');
   // Let whatever is left of the heart melt away, then fire the popper.
   await scratch.animate([{ opacity: 1 }, { opacity: 0 }], {
@@ -656,6 +659,8 @@ if (heartImg.complete && heartImg.naturalWidth) {
   setupScratch();
 } else {
   heartImg.addEventListener('load', setupScratch, { once: true });
+  // Without the heart there is nothing to scratch, so don't hold the screen hostage.
+  heartImg.addEventListener('error', () => revealDate(), { once: true });
 }
 
 scratch.addEventListener('pointerdown', (event) => {
@@ -684,6 +689,30 @@ scratch.addEventListener('keydown', (event) => {
   event.preventDefault();
   revealDate();
 });
+
+// The date screen holds still until the heart has been scratched, so nobody scrolls past the
+// reveal or slides the screen away mid-scratch. Once revealed it stays revealed for the visit.
+let dateLocked = false;
+
+function lockDate() {
+  if (revealed || dateLocked) return;
+  dateLocked = true;
+  date.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  // Let that scroll finish before freezing the page, or it would stop halfway.
+  setTimeout(() => {
+    if (dateLocked) root.classList.add('is-locked');
+  }, reduceMotion ? 0 : 500);
+}
+
+function unlockDate() {
+  dateLocked = false;
+  root.classList.remove('is-locked');
+}
+
+const dateWatcher = new IntersectionObserver(([entry]) => {
+  if (entry.isIntersecting) lockDate();
+}, { threshold: 0.7 });
+dateWatcher.observe(date);
 
 // Party popper: a burst of gold and green pieces shot up from the bottom edge.
 const POPPER_COLORS = ['#c9a45c', '#e3c98f', '#a8813f', '#8c967b', '#28514a', '#4f7a6c', '#f1e9da'];
@@ -798,10 +827,47 @@ if (reduceMotion) {
   renderVeil();
 }
 
-// Music toggle: tracks state only until a track is chosen.
+// Music: browsers only allow sound after a gesture, so it starts with the tap that opens the
+// envelope and loops from there; the header button turns it off and on.
+const music = document.querySelector('.music');
 const sound = document.querySelector('.sound');
+const MUSIC_VOLUME = 0.55;
+
+function fadeMusic(to, ms) {
+  const from = music.volume;
+  const start = performance.now();
+  return new Promise((done) => {
+    requestAnimationFrame(function step(now) {
+      const t = ms > 0 ? clamp01((now - start) / ms) : 1;
+      music.volume = from + (to - from) * t;
+      if (t < 1) requestAnimationFrame(step);
+      else done();
+    });
+  });
+}
+
+function playMusic(fade) {
+  return music.play().then(() => {
+    sound.setAttribute('aria-pressed', 'true');
+    return fadeMusic(MUSIC_VOLUME, fade);
+  }, () => {
+    sound.setAttribute('aria-pressed', 'false'); // refused (low power mode, say): show it as off
+  });
+}
+
+function startMusic() {
+  music.volume = 0;
+  playMusic(1400);
+}
+
 sound.addEventListener('click', () => {
-  sound.setAttribute('aria-pressed', String(sound.getAttribute('aria-pressed') !== 'true'));
+  if (music.paused) {
+    music.volume = 0;
+    playMusic(400);
+  } else {
+    sound.setAttribute('aria-pressed', 'false');
+    fadeMusic(0, 300).then(() => music.pause());
+  }
 });
 
 // RSVP: intentionally goes nowhere until the client's backend is connected.
