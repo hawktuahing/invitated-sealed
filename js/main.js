@@ -711,19 +711,27 @@ scratch.addEventListener('keydown', (event) => {
 // reveal or slides the screen away mid-scratch. Once revealed it stays revealed for the visit.
 let dateLocked = false;
 
-// Bring the screen to rest at the top of the date section. Scrolling is frozen by then, so this
-// moves the page itself rather than asking for a scroll that a flick could outrun.
+// Nudge the page just enough that the whole heart is in reach, and no further: scrolling is frozen
+// by then, so this moves the page itself rather than asking for a scroll a flick could outrun.
+const HEART_MARGIN = 40;
+
 function alignDate() {
-  const to = date.getBoundingClientRect().top + window.scrollY;
+  const heart = date.querySelector('.date__heart').getBoundingClientRect();
+  const short = Math.min(0, heart.top - HEART_MARGIN); // above the screen: pull down
+  const long = Math.max(0, heart.bottom + HEART_MARGIN - window.innerHeight); // below: pull up
+  const shift = short || long;
+  if (shift === 0) return; // already comfortably in view — hold it where it is
+
   const from = window.scrollY;
-  if (reduceMotion || Math.abs(to - from) < 2) {
+  const to = from + shift;
+  if (reduceMotion) {
     window.scrollTo(0, to);
     return;
   }
   const start = performance.now();
   requestAnimationFrame(function step(now) {
-    const t = clamp01((now - start) / 420);
-    const eased = 1 - (1 - t) ** 3;
+    const t = clamp01((now - start) / 700);
+    const eased = t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2; // ease in and out, no yank
     window.scrollTo(0, from + (to - from) * eased);
     if (t < 1 && dateLocked) requestAnimationFrame(step);
   });
