@@ -716,19 +716,33 @@ let dateLocked = false;
 function heartWithinReach() {
   const { top, bottom, height } = date.querySelector('.date__heart').getBoundingClientRect();
   const visible = Math.min(bottom, window.innerHeight) - Math.max(top, 0);
-  return visible >= height * 0.8;
+  return visible >= height * 0.75; // scratching 60% of it has to be possible without scrolling
 }
+
+let lockedAt = 0;
 
 function lockDate() {
   if (revealed || dateLocked || !heartWithinReach()) return;
   dateLocked = true;
-  // Sticks where it is: no scrolling of our own, which always reads as a yank.
+  lockedAt = window.scrollY;
   root.classList.add('is-locked');
+  // Sticks where it is: no scrolling of our own, which reads as a yank. Setting the page to not
+  // scroll isn't enough on iOS, where a fling carries on regardless; pinning the body stops it dead.
+  document.body.style.position = 'fixed';
+  document.body.style.top = `${-lockedAt}px`;
+  document.body.style.left = '0';
+  document.body.style.right = '0';
 }
 
 function unlockDate() {
-  dateLocked = false;
   root.classList.remove('is-locked');
+  if (!dateLocked) return;
+  dateLocked = false;
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  window.scrollTo(0, lockedAt); // pinning the body lost the scroll position; put it back
 }
 
 const dateWatcher = new IntersectionObserver(([entry]) => {
