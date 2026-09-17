@@ -65,9 +65,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* On a phone the page fills the screen edge to edge instead of the 393px column of the mock. */
 @media (max-width: 600px) {
-  /* The height actually visible right now, whatever Safari's toolbars are doing; svh assumes they
-     are all expanded, which left a strip of the next screen showing under a full-screen one. */
-  :root { --full-h: max(640px, 100dvh); }
+  :root { --full-h: max(640px, 100svh); }
   .app { max-width: none; }
 }
 
@@ -157,20 +155,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   background: linear-gradient(180deg, rgba(226, 217, 200, 0), var(--cream));
 }
 
-/* Text that rises into place the first time it is scrolled to. Elements already carrying a
-   transform (they are positioned by the mock's coordinates) use data-reveal="fade" instead. */
-[data-reveal] {
-  opacity: 0;
-  transform: translateY(16px);
-  transition: opacity 0.7s ease var(--reveal-delay, 0s), transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) var(--reveal-delay, 0s);
-}
-[data-reveal="fade"] { transform: none; }
-[data-reveal].is-in { opacity: 1; transform: none; }
-
-@media (prefers-reduced-motion: reduce) {
-  [data-reveal] { opacity: 1; transform: none; transition: none; }
-}
-
 /* ---------- Header ---------- */
 .topbar {
   position: fixed;
@@ -209,8 +193,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .sound img { transition: filter 0.35s ease; }
 
-.sound[aria-pressed="false"] img { opacity: 0.45; }
-
 /* Over the cream screens white type disappears, so the bar flips to ink. */
 .topbar.is-light { background: rgba(226, 217, 200, 0.6); color: var(--ink); }
 .topbar.is-light .sound { border-color: rgba(23, 60, 53, 0.2); }
@@ -223,28 +205,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* ---------- 1. Envelope ---------- */
 /* Sits on top of the cover until it has opened and slid away. */
 .envelope {
-  /* Fixed to the screen rather than the page: scrolling is locked while it is up, and this way it
-     covers the screen whatever height the browser reports for it. */
-  position: fixed;
+  position: absolute;
   z-index: 5;
   top: 0;
-  left: 50%;
-  width: 100%;
-  max-width: var(--screen-w);
-  height: var(--full-h);
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
   container-type: size;
 }
-@media (max-width: 600px) {
-  /* The largest the screen gets, so no browser toolbar state leaves a gap below it. */
-  .envelope { max-width: none; height: 100lvh; }
-}
-
-/* Until the paper and the wax have loaded, the envelope is a plain sheet: the flaps are cut apart
-   at the crack, so showing them early would let the cover glare through the gap. */
-.envelope.is-loading { background: var(--paper); }
-.envelope.is-loading .envelope__stage,
-.envelope.is-loading .envelope__open { visibility: hidden; }
 
 /* Darkens the cover while the envelope lies over it; lifts as the envelope slides away. */
 .envelope__shade {
@@ -507,24 +474,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .date__heart.is-ready img { visibility: hidden; }
 
-/* Written on the wax heart itself, so it's clear it is meant to be rubbed away. */
-.date__scrub {
-  position: absolute;
-  z-index: 1;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 16px;
-  line-height: 20px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
-  pointer-events: none;
-  transition: opacity 0.35s ease;
-}
-.date.is-scratching .date__scrub { opacity: 0; }
-
 .date__burst {
   position: absolute;
   inset: 0;
@@ -551,26 +500,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .date.is-revealed .date__confetti { opacity: 0.7; visibility: visible; transition: opacity 1.6s ease 0.8s; }
 
 @media (prefers-reduced-motion: reduce) {
-  .date__frame, .date__hint, .date__when, .date__calendar, .date__confetti, .date__scrub { transition: none !important; }
+  .date__frame, .date__hint, .date__when, .date__calendar, .date__confetti { transition: none !important; }
 }
 
 /* ---------- 5. Program ---------- */
-/* The programme screen plus the scroll the veil parts over, then the scroll its lines come in on.
-   Keep PROGRAM_VEIL and PROGRAM_REVEAL in main.js in step. */
-.program-track {
-  --veil: 150svh;
-  --reveal: 130svh;
-  /* At least the mock's height, and the whole screen on a taller phone so the veil covers it all. */
-  --program-h: max(var(--screen-h), var(--full-h));
-  position: relative;
-  height: calc(var(--program-h) + var(--veil) + var(--reveal));
-  background: var(--green);
-}
-/* Pinned; on a screen shorter than the programme it pins with its bottom edge in view. */
 .program {
-  position: sticky;
-  top: min(0px, 100dvh - var(--program-h));
-  height: var(--program-h);
   background: var(--green);
   color: var(--cream);
 }

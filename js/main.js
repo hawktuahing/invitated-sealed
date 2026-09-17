@@ -1,8 +1,4 @@
 const root = document.documentElement;
-
-// A reload always starts over at the sealed envelope: don't let the browser restore the old scroll position.
-if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-window.scrollTo(0, 0);
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -50,7 +46,7 @@ const T = {
   lift: 380, // the top flap starts to open
 };
 const LIFT_DURATION = 1500;
-const SLIDE_DURATION = 1900;
+const SLIDE_DURATION = 1150;
 const SLIDE_LATEST = T.lift + LIFT_DURATION + 900; // slide by then even if a corner of the flap still shows
 
 // Crease lines measured off the photo, in percent of its 479.5×852 box. The top flap is cut into
@@ -257,14 +253,6 @@ envelopeStage.append(envelopeBody);
 
 const topFlap = buildTopFlap(TOP_FLAP);
 
-// Show it only once the paper and the wax are both in: half-loaded, the gap at the crack shows
-// straight through to the cover.
-Promise.all([PAPER_SRC, SEAL_SRC].map((src) => {
-  const img = new Image();
-  img.src = src;
-  return img.decode().catch(() => {});
-})).then(() => envelope.classList.remove('is-loading'));
-
 // The seal lies over both flaps: the upper half rides the top flap's tip (and may stick out past
 // its edge), the lower half stays on the bottom flap, lifted clear of the tip it overlaps.
 const sealUpper = makeSealHalf('upper', 1.6);
@@ -390,21 +378,14 @@ function topFlapGone() {
   return above(sealUpper) && topFlap.bands.every(({ front, back }) => above(front) && above(back));
 }
 
-// The glued body slides away down the screen, fading as it goes, letting the invitation in from above.
+// The glued body slides away down the screen, letting the invitation in from above.
 function slideBodyAway() {
   envelope.classList.add('is-sliding');
-  // Dissolving along the way, mostly done before it reaches the bottom of the screen.
-  play(envelopeBody, [
-    { opacity: 1 },
-    { opacity: 0.75, offset: 0.3 },
-    { opacity: 0.12, offset: 0.75 },
-    { opacity: 0 },
-  ], { duration: SLIDE_DURATION, easing: 'linear', fill: 'forwards' });
   play(envelope.querySelector('.envelope__shade'), [{ opacity: 0.45 }, { opacity: 0 }], {
     duration: SLIDE_DURATION, easing: 'ease-out', fill: 'forwards',
   });
   return play(envelopeBody, [{ transform: 'translateY(0)' }, { transform: 'translateY(104%)' }], {
-    duration: SLIDE_DURATION, easing: 'cubic-bezier(0.45, 0.05, 0.25, 1)', fill: 'forwards',
+    duration: SLIDE_DURATION, easing: 'cubic-bezier(0.55, 0, 0.35, 1)', fill: 'forwards',
   }).finished;
 }
 
@@ -491,51 +472,33 @@ const smoothstep = (from, to, x) => {
   return t * t * (3 - 2 * t);
 };
 
-// Scrubs a video to whatever time the page asks for: eases toward it and seeks one step at a time,
-// since queueing seeks while the decoder is busy makes the scrub lag behind the finger.
-function createScrubber(video, onReadyChange) {
-  // The video may have loaded before this script ran, in which case 'loadeddata' has already fired.
-  let ready = video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
-  let target = 0;
-  let shown = 0;
-  let running = false;
+// The clip may have loaded before this script ran, in which case 'loadeddata' has already fired.
+let clipReady = journeyVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+let clipTarget = 0; // seconds into the clip, from the scroll position
+let clipShown = 0; // seconds, eased toward the target so the scrub stays smooth
+let clipSeeking = false;
+let journeyQueued = false;
 
-  function step() {
-    const duration = video.duration;
-    if (!ready || !duration) {
-      running = false;
+function seekClip() {
+  if (clipSeeking) return;
+  clipSeeking = true;
+  requestAnimationFrame(function step() {
+    const duration = journeyVideo.duration;
+    if (!clipReady || !duration) {
+      clipSeeking = false;
       return;
     }
-    const goal = Math.min(target, duration - 0.05);
-    const gap = goal - shown;
-    shown = reduceMotion || Math.abs(gap) < 0.02 ? goal : shown + gap * 0.25;
-    if (!video.seeking && Math.abs(video.currentTime - shown) > 0.5 / 30) video.currentTime = shown;
-    if (shown !== goal || video.seeking) requestAnimationFrame(step);
-    else running = false;
-  }
-
-  video.addEventListener('loadeddata', () => {
-    ready = true;
-    onReadyChange();
+    const target = Math.min(clipTarget, duration - 0.05);
+    const gap = target - clipShown;
+    clipShown = reduceMotion || Math.abs(gap) < 0.02 ? target : clipShown + gap * 0.25;
+    // One seek at a time: queueing more while the decoder is busy makes the scrub lag behind.
+    if (!journeyVideo.seeking && Math.abs(journeyVideo.currentTime - clipShown) > 0.5 / 30) {
+      journeyVideo.currentTime = clipShown;
+    }
+    if (clipShown !== target || journeyVideo.seeking) requestAnimationFrame(step);
+    else clipSeeking = false;
   });
-  video.addEventListener('error', () => {
-    ready = false;
-    onReadyChange();
-  });
-
-  return {
-    get ready() { return ready; },
-    seek(seconds) {
-      target = seconds;
-      if (running) return;
-      running = true;
-      requestAnimationFrame(step);
-    },
-  };
 }
-
-let journeyQueued = false;
-const journeyClip = createScrubber(journeyVideo, () => queueJourney());
 
 function renderJourney() {
   journeyQueued = false;
@@ -545,9 +508,7 @@ function renderJourney() {
   const motion = clamp01((at - CLIP_FROM) / (CLIP_MOTION_END - CLIP_FROM));
   const freeze = clamp01((at - CLIP_MOTION_END) / (JOURNEY_MOTION + JOURNEY_FREEZE - CLIP_MOTION_END));
 
-  // The names hold while the doors open and only clear as the camera reaches the doorway
-  // (clip seconds 3.0 → 4.3, mapped onto the track).
-  const namesOut = smoothstep(100, 135, at);
+  const namesOut = smoothstep(0, 26, at);
   coverCard.style.opacity = 1 - namesOut;
   coverCard.style.transform = `translateY(${(-24 * namesOut).toFixed(1)}px)`;
   coverHint.style.opacity = 1 - smoothstep(0, 13, at);
@@ -558,10 +519,11 @@ function renderJourney() {
   // The dimming lifts while the doors open and the camera travels, and returns under the text.
   journeyShade.style.opacity = 1 - 0.7 * Math.sin(Math.PI * motion);
   // If the clip can't be shown, cross-fade between its first and last frames instead.
-  journeyLast.style.opacity = journeyClip.ready ? 0 : smoothstep(0.3, 0.7, motion);
+  journeyLast.style.opacity = clipReady ? 0 : smoothstep(0.3, 0.7, motion);
 
   const duration = journeyVideo.duration || CLIP_FREEZE_AT;
-  journeyClip.seek(motion < 1 ? motion * CLIP_FREEZE_AT : CLIP_FREEZE_AT + freeze * Math.max(duration - CLIP_FREEZE_AT, 0));
+  clipTarget = motion < 1 ? motion * CLIP_FREEZE_AT : CLIP_FREEZE_AT + freeze * Math.max(duration - CLIP_FREEZE_AT, 0);
+  seekClip();
 }
 
 function queueJourney() {
@@ -570,20 +532,25 @@ function queueJourney() {
   requestAnimationFrame(renderJourney);
 }
 
+journeyVideo.addEventListener('loadeddata', () => {
+  clipReady = true;
+  queueJourney();
+});
+journeyVideo.addEventListener('error', () => {
+  clipReady = false;
+  queueJourney();
+});
 window.addEventListener('scroll', queueJourney, { passive: true });
 window.addEventListener('resize', queueJourney);
 renderJourney();
 
 // iOS only fetches and seeks a video after it has played from a user gesture: tapping the
-// envelope is that gesture, so play and pause each scrubbed video at once, invisibly, on its first frame.
+// envelope is that gesture, so play and pause at once, invisibly, on the first frame.
 envelope.querySelector('.envelope__open').addEventListener('click', () => {
-  startMusic();
-  document.querySelectorAll('.journey__video, .program__veil').forEach((video) => {
-    video.play().then(() => {
-      video.pause();
-      video.currentTime = 0;
-    }, () => {});
-  });
+  journeyVideo.play().then(() => {
+    journeyVideo.pause();
+    journeyVideo.currentTime = 0;
+  }, () => {});
 }, { once: true });
 
 // Scratch card: wiping the heart away reveals the date, and once it is empty a party popper fires from below.
@@ -659,8 +626,6 @@ function checkProgress(force) {
 async function revealDate() {
   if (revealed) return;
   revealed = true;
-  unlockDate();
-  dateWatcher.disconnect();
   date.classList.add('is-scratching');
   // Let whatever is left of the heart melt away, then fire the popper.
   await scratch.animate([{ opacity: 1 }, { opacity: 0 }], {
@@ -676,8 +641,6 @@ if (heartImg.complete && heartImg.naturalWidth) {
   setupScratch();
 } else {
   heartImg.addEventListener('load', setupScratch, { once: true });
-  // Without the heart there is nothing to scratch, so don't hold the screen hostage.
-  heartImg.addEventListener('error', () => revealDate(), { once: true });
 }
 
 scratch.addEventListener('pointerdown', (event) => {
@@ -706,53 +669,6 @@ scratch.addEventListener('keydown', (event) => {
   event.preventDefault();
   revealDate();
 });
-
-// The date screen holds still until the heart has been scratched, so nobody scrolls past the
-// reveal or slides the screen away mid-scratch. Once revealed it stays revealed for the visit.
-let dateLocked = false;
-
-// Enough of the heart has to be on screen to scratch it; if a flick carried it past, let it go
-// rather than freezing the page out of reach.
-function heartWithinReach() {
-  const { top, bottom, height } = date.querySelector('.date__heart').getBoundingClientRect();
-  const visible = Math.min(bottom, window.innerHeight) - Math.max(top, 0);
-  return visible >= height * 0.75; // scratching 60% of it has to be possible without scrolling
-}
-
-let lockedAt = 0;
-
-function lockDate() {
-  if (revealed || dateLocked || !heartWithinReach()) return;
-  dateLocked = true;
-  lockedAt = window.scrollY;
-  root.classList.add('is-locked');
-  // Sticks where it is: no scrolling of our own, which reads as a yank. Setting the page to not
-  // scroll isn't enough on iOS, where a fling carries on regardless; pinning the body stops it dead.
-  document.body.style.position = 'fixed';
-  document.body.style.top = `${-lockedAt}px`;
-  document.body.style.left = '0';
-  document.body.style.right = '0';
-}
-
-function unlockDate() {
-  root.classList.remove('is-locked');
-  if (!dateLocked) return;
-  dateLocked = false;
-  document.body.style.position = '';
-  document.body.style.top = '';
-  document.body.style.left = '';
-  document.body.style.right = '';
-  window.scrollTo(0, lockedAt); // pinning the body lost the scroll position; put it back
-}
-
-const dateWatcher = new IntersectionObserver(([entry]) => {
-  if (entry.isIntersecting) lockDate();
-}, { threshold: 0.25 });
-dateWatcher.observe(date);
-
-// A fast flick can carry the screen past before the observer has anything to report, so check on
-// scrolling too; lockDate only takes hold once the heart is actually in reach.
-window.addEventListener('scroll', lockDate, { passive: true });
 
 // Party popper: a burst of gold and green pieces shot up from the bottom edge.
 const POPPER_COLORS = ['#c9a45c', '#e3c98f', '#a8813f', '#8c967b', '#28514a', '#4f7a6c', '#f1e9da'];
@@ -828,115 +744,30 @@ function firePopper() {
   requestAnimationFrame(frame);
 }
 
-// Program: while it is pinned, scrolling first parts the veil frame by frame, then brings the title
-// and the four times in one after another; scrolling back up undoes both. The vine down the middle
-// stays through all of it. Scroll distances in svh, as in .program-track's --veil and --reveal.
-const PROGRAM_VEIL = 150;
-const PROGRAM_REVEAL = 130;
-const programTrack = document.getElementById('program');
-const programStage = programTrack.querySelector('.program');
-const veil = programTrack.querySelector('.program__veil');
+// Program veil: loads as the screen approaches, parts once when half of it is in view, then goes away.
+const veil = document.querySelector('.program__veil');
 if (reduceMotion) {
   veil.hidden = true;
 } else {
-  let veilQueued = false;
-  const queueVeil = () => {
-    if (veilQueued) return;
-    veilQueued = true;
-    requestAnimationFrame(renderVeil);
-  };
-  const veilClip = createScrubber(veil, queueVeil);
-  // The title is there from the start, like the vine; only the times come in one by one.
-  const programSteps = [...programStage.querySelectorAll('.program__item')];
-
-  function renderVeil() {
-    veilQueued = false;
-    const stageHeight = programStage.offsetHeight;
-    const pinnedTop = Math.min(0, window.innerHeight - stageHeight); // same as .program's sticky top
-    const track = programTrack.offsetHeight - stageHeight;
-    const scrolled = track > 0 ? clamp01((pinnedTop - programTrack.getBoundingClientRect().top) / track) : 1;
-    const veilShare = PROGRAM_VEIL / (PROGRAM_VEIL + PROGRAM_REVEAL);
-    const parted = clamp01(scrolled / veilShare);
-
-    // With the veil gone, each line rises into place in turn over the rest of the track.
-    const reveal = clamp01((scrolled - veilShare) / (1 - veilShare));
-    programSteps.forEach((step, i) => {
-      const shown = smoothstep(i * 0.16, i * 0.16 + 0.22, reveal);
-      const lift = ((1 - shown) * 18).toFixed(1);
-      step.style.opacity = shown.toFixed(3);
-      step.style.transform = `translateY(${lift}px)`;
-    });
-
-    // Its last frames are black, i.e. see-through under screen blending, but not to the last digit:
-    // fade the veil out over the tail so dropping it doesn't darken the screen in one step.
-    veil.style.opacity = (1 - smoothstep(0.85, 1, parted)).toFixed(3);
-    veil.style.visibility = parted >= 1 ? 'hidden' : '';
-    veilClip.seek(parted * (veil.duration || 7));
-  }
-
-  // Fetch it as the programme approaches, so it is ready to scrub when it arrives.
   new IntersectionObserver(([entry], observer) => {
     if (!entry.isIntersecting) return;
     observer.disconnect();
     veil.preload = 'auto';
-  }, { rootMargin: '100% 0px' }).observe(programTrack);
+  }, { rootMargin: '100% 0px' }).observe(veil.parentElement);
 
-  window.addEventListener('scroll', queueVeil, { passive: true });
-  window.addEventListener('resize', queueVeil);
-  renderVeil();
-}
-
-// Text that rises into place the first time it is scrolled to.
-const revealWatcher = new IntersectionObserver((entries, observer) => {
-  entries.forEach((entry) => {
+  new IntersectionObserver(([entry], observer) => {
     if (!entry.isIntersecting) return;
-    entry.target.classList.add('is-in');
-    observer.unobserve(entry.target);
-  });
-}, { threshold: 0.35 });
-document.querySelectorAll('[data-reveal]').forEach((el) => revealWatcher.observe(el));
+    observer.disconnect();
+    veil.addEventListener('ended', () => { veil.hidden = true; }, { once: true });
+    veil.playbackRate = 1 / slowmo;
+    veil.play().catch(() => { veil.hidden = true; });
+  }, { threshold: 0.5 }).observe(veil.parentElement);
+}
 
-// Music: browsers only allow sound after a gesture, so it starts with the tap that opens the
-// envelope and loops from there; the header button turns it off and on.
-const music = document.querySelector('.music');
+// Music toggle: tracks state only until a track is chosen.
 const sound = document.querySelector('.sound');
-const MUSIC_VOLUME = 0.55;
-
-function fadeMusic(to, ms) {
-  const from = music.volume;
-  const start = performance.now();
-  return new Promise((done) => {
-    requestAnimationFrame(function step(now) {
-      const t = ms > 0 ? clamp01((now - start) / ms) : 1;
-      music.volume = from + (to - from) * t;
-      if (t < 1) requestAnimationFrame(step);
-      else done();
-    });
-  });
-}
-
-function playMusic(fade) {
-  return music.play().then(() => {
-    sound.setAttribute('aria-pressed', 'true');
-    return fadeMusic(MUSIC_VOLUME, fade);
-  }, () => {
-    sound.setAttribute('aria-pressed', 'false'); // refused (low power mode, say): show it as off
-  });
-}
-
-function startMusic() {
-  music.volume = 0;
-  playMusic(1400);
-}
-
 sound.addEventListener('click', () => {
-  if (music.paused) {
-    music.volume = 0;
-    playMusic(400);
-  } else {
-    sound.setAttribute('aria-pressed', 'false');
-    fadeMusic(0, 300).then(() => music.pause());
-  }
+  sound.setAttribute('aria-pressed', String(sound.getAttribute('aria-pressed') !== 'true'));
 });
 
 // RSVP: intentionally goes nowhere until the client's backend is connected.
