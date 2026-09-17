@@ -382,9 +382,14 @@ function topFlapGone() {
   return above(sealUpper) && topFlap.bands.every(({ front, back }) => above(front) && above(back));
 }
 
-// The glued body slides away down the screen, letting the invitation in from above.
+// The glued body slides away down the screen, fading as it goes, letting the invitation in from above.
 function slideBodyAway() {
   envelope.classList.add('is-sliding');
+  play(envelopeBody, [
+    { opacity: 1 },
+    { opacity: 1, offset: 0.2 },
+    { opacity: 0 },
+  ], { duration: SLIDE_DURATION, easing: 'ease-in', fill: 'forwards' });
   play(envelope.querySelector('.envelope__shade'), [{ opacity: 0.45 }, { opacity: 0 }], {
     duration: SLIDE_DURATION, easing: 'ease-out', fill: 'forwards',
   });
@@ -826,6 +831,16 @@ if (reduceMotion) {
   window.addEventListener('resize', queueVeil);
   renderVeil();
 }
+
+// Text that rises into place the first time it is scrolled to.
+const revealWatcher = new IntersectionObserver((entries, observer) => {
+  entries.forEach((entry) => {
+    if (!entry.isIntersecting) return;
+    entry.target.classList.add('is-in');
+    observer.unobserve(entry.target);
+  });
+}, { threshold: 0.35 });
+document.querySelectorAll('[data-reveal]').forEach((el) => revealWatcher.observe(el));
 
 // Music: browsers only allow sound after a gesture, so it starts with the tap that opens the
 // envelope and loops from there; the header button turns it off and on.
