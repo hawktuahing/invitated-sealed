@@ -1,9 +1,4 @@
 const root = document.documentElement;
-
-// Every visit starts from the sealed envelope at the top: a reload doesn't restore the old scroll
-// position (a page restored from the back/forward cache is reloaded further down, near the RSVP form).
-if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-window.scrollTo(0, 0);
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -479,32 +474,12 @@ const smoothstep = (from, to, x) => {
 
 // Scrubs a video to whatever time the page asks for: eases toward it and seeks one step at a time,
 // since queueing seeks while the decoder is busy makes the scrub lag behind the finger.
-// canSwap() says when the video is at rest on its first frame or out of sight, see loadIntoMemory.
-function createScrubber(video, onReadyChange, canSwap) {
+function createScrubber(video, onReadyChange) {
   // The video may have loaded before this script ran, in which case 'loadeddata' has already fired.
   let ready = video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
   let target = 0;
   let shown = 0;
   let running = false;
-  let memoryUrl = null;
-  let fetching = false;
-
-  // Switching the source briefly shows the poster (the first frame), so only do it when that can't be seen.
-  function swapIfIdle() {
-    if (!memoryUrl || !canSwap()) return;
-    const url = memoryUrl;
-    memoryUrl = null;
-    ready = false;
-    video.addEventListener('loadeddata', () => {
-      // Muted playback needs no gesture, and playing once makes iOS paint the frames it seeks to.
-      video.play().then(() => {
-        video.pause();
-        video.currentTime = shown;
-      }, () => {});
-    }, { once: true });
-    video.src = url;
-    video.load();
-  }
 
   function step() {
     const duration = video.duration;
@@ -531,22 +506,8 @@ function createScrubber(video, onReadyChange, canSwap) {
 
   return {
     get ready() { return ready; },
-    // Seeking into a part of the file that hasn't downloaded yet waits on the network, which made the
-    // scrub stutter now and then. Fetch the whole file and play it from memory instead.
-    loadIntoMemory() {
-      if (fetching) return;
-      fetching = true;
-      fetch(video.currentSrc || video.src)
-        .then((response) => (response.ok ? response.blob() : Promise.reject(response.status)))
-        .then((blob) => {
-          memoryUrl = URL.createObjectURL(blob);
-          swapIfIdle();
-        })
-        .catch(() => {}); // keep streaming it as before
-    },
     seek(seconds) {
       target = seconds;
-      swapIfIdle();
       if (running) return;
       running = true;
       requestAnimationFrame(step);
@@ -555,19 +516,13 @@ function createScrubber(video, onReadyChange, canSwap) {
 }
 
 let journeyQueued = false;
-let journeyAt = 0;
-const journeyClip = createScrubber(journeyVideo, () => queueJourney(), () => {
-  const { top, bottom } = journey.getBoundingClientRect();
-  return journeyAt <= 0 || bottom <= 0 || top >= window.innerHeight;
-});
-journeyClip.loadIntoMemory();
+const journeyClip = createScrubber(journeyVideo, () => queueJourney());
 
 function renderJourney() {
   journeyQueued = false;
   const track = journey.offsetHeight - journeyStage.offsetHeight;
   const scrolled = track > 0 ? clamp01(-journey.getBoundingClientRect().top / track) : 0;
   const at = scrolled * (JOURNEY_MOTION + JOURNEY_FREEZE); // svh scrolled into the track
-  journeyAt = at;
   const motion = clamp01((at - CLIP_FROM) / (CLIP_MOTION_END - CLIP_FROM));
   const freeze = clamp01((at - CLIP_MOTION_END) / (JOURNEY_MOTION + JOURNEY_FREEZE - CLIP_MOTION_END));
 
@@ -814,9 +769,7 @@ if (reduceMotion) {
     veilQueued = true;
     requestAnimationFrame(renderVeil);
   };
-  let veilParted = 0;
-  // At rest when fully closed (its first frame, same as the poster) or fully parted (hidden).
-  const veilClip = createScrubber(veil, queueVeil, () => veilParted <= 0 || veilParted >= 1);
+  const veilClip = createScrubber(veil, queueVeil);
 
   function renderVeil() {
     veilQueued = false;
@@ -824,7 +777,6 @@ if (reduceMotion) {
     const pinnedTop = Math.min(0, window.innerHeight - stageHeight); // same as .program's sticky top
     const track = programTrack.offsetHeight - stageHeight;
     const parted = track > 0 ? clamp01((pinnedTop - programTrack.getBoundingClientRect().top) / track) : 1;
-    veilParted = parted;
     // Its last frame is all black, i.e. fully see-through: once there, stop compositing it.
     veil.style.visibility = parted >= 1 ? 'hidden' : '';
     veilClip.seek(parted * (veil.duration || 7));
@@ -835,7 +787,6 @@ if (reduceMotion) {
     if (!entry.isIntersecting) return;
     observer.disconnect();
     veil.preload = 'auto';
-    veilClip.loadIntoMemory();
   }, { rootMargin: '100% 0px' }).observe(programTrack);
 
   window.addEventListener('scroll', queueVeil, { passive: true });
@@ -850,32 +801,6 @@ sound.addEventListener('click', () => {
 });
 
 // RSVP: intentionally goes nowhere until the client's backend is connected.
-const rsvpForm = document.querySelector('.rsvp__form');
-// Some browsers refill fields after a reload; start empty like the rest of the page.
-rsvpForm.reset();
-
-// Once the guest has typed or picked something, leaving or reloading asks first (the browser's own
-// dialog: its wording can't be changed, and Safari on iPhone doesn't show it at all).
-let rsvpStarted = false;
-const rsvpHasInput = () => [...rsvpForm.elements].some((field) => {
-  if (field.type === 'radio' || field.type === 'checkbox') return field.checked;
-  return field.tagName !== 'BUTTON' && field.value.trim() !== '';
-});
-rsvpForm.addEventListener('input', () => { rsvpStarted = rsvpHasInput(); });
-rsvpForm.addEventListener('change', () => { rsvpStarted = rsvpHasInput(); });
-rsvpForm.addEventListener('submit', (event) => {
+document.querySelector('.rsvp__form').addEventListener('submit', (event) => {
   event.preventDefault();
-  rsvpStarted = false;
-});
-
-window.addEventListener('beforeunload', (event) => {
-  if (!rsvpStarted) return;
-  event.preventDefault();
-  event.returnValue = '';
-});
-
-// Coming back through the back button restores the page as it was left; start over instead,
-// unless that would throw away what the guest typed.
-window.addEventListener('pageshow', (event) => {
-  if (event.persisted && !rsvpStarted) window.location.reload();
 });
