@@ -711,38 +711,19 @@ scratch.addEventListener('keydown', (event) => {
 // reveal or slides the screen away mid-scratch. Once revealed it stays revealed for the visit.
 let dateLocked = false;
 
-// Nudge the page just enough that the whole heart is in reach, and no further: scrolling is frozen
-// by then, so this moves the page itself rather than asking for a scroll a flick could outrun.
-const HEART_MARGIN = 40;
-
-function alignDate() {
-  const heart = date.querySelector('.date__heart').getBoundingClientRect();
-  const short = Math.min(0, heart.top - HEART_MARGIN); // above the screen: pull down
-  const long = Math.max(0, heart.bottom + HEART_MARGIN - window.innerHeight); // below: pull up
-  const shift = short || long;
-  if (shift === 0) return; // already comfortably in view — hold it where it is
-
-  const from = window.scrollY;
-  const to = from + shift;
-  if (reduceMotion) {
-    window.scrollTo(0, to);
-    return;
-  }
-  const start = performance.now();
-  requestAnimationFrame(function step(now) {
-    const t = clamp01((now - start) / 700);
-    const eased = t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2; // ease in and out, no yank
-    window.scrollTo(0, from + (to - from) * eased);
-    if (t < 1 && dateLocked) requestAnimationFrame(step);
-  });
+// Enough of the heart has to be on screen to scratch it; if a flick carried it past, let it go
+// rather than freezing the page out of reach.
+function heartWithinReach() {
+  const { top, bottom, height } = date.querySelector('.date__heart').getBoundingClientRect();
+  const visible = Math.min(bottom, window.innerHeight) - Math.max(top, 0);
+  return visible >= height * 0.8;
 }
 
 function lockDate() {
-  if (revealed || dateLocked) return;
+  if (revealed || dateLocked || !heartWithinReach()) return;
   dateLocked = true;
-  // Freeze first: a flick can carry the heart off screen before any scrolling of ours lands.
+  // Sticks where it is: no scrolling of our own, which always reads as a yank.
   root.classList.add('is-locked');
-  alignDate();
 }
 
 function unlockDate() {
@@ -750,24 +731,14 @@ function unlockDate() {
   root.classList.remove('is-locked');
 }
 
-// If the view shifts while it is held (a rotation, the browser's toolbars), bring it back.
-window.addEventListener('resize', () => {
-  if (dateLocked) alignDate();
-});
-
 const dateWatcher = new IntersectionObserver(([entry]) => {
   if (entry.isIntersecting) lockDate();
 }, { threshold: 0.25 });
 dateWatcher.observe(date);
 
-// A fast flick can carry the screen past before the observer has anything to report, so also take
-// hold whenever the section is across the middle of the screen.
-window.addEventListener('scroll', () => {
-  if (revealed || dateLocked) return;
-  const { top, bottom } = date.getBoundingClientRect();
-  const middle = window.innerHeight / 2;
-  if (top <= middle && bottom >= middle) lockDate();
-}, { passive: true });
+// A fast flick can carry the screen past before the observer has anything to report, so check on
+// scrolling too; lockDate only takes hold once the heart is actually in reach.
+window.addEventListener('scroll', lockDate, { passive: true });
 
 // Party popper: a burst of gold and green pieces shot up from the bottom edge.
 const POPPER_COLORS = ['#c9a45c', '#e3c98f', '#a8813f', '#8c967b', '#28514a', '#4f7a6c', '#f1e9da'];
