@@ -711,14 +711,30 @@ scratch.addEventListener('keydown', (event) => {
 // reveal or slides the screen away mid-scratch. Once revealed it stays revealed for the visit.
 let dateLocked = false;
 
+// Bring the screen to rest at the top of the date section. Scrolling is frozen by then, so this
+// moves the page itself rather than asking for a scroll that a flick could outrun.
+function alignDate() {
+  const to = date.getBoundingClientRect().top + window.scrollY;
+  const from = window.scrollY;
+  if (reduceMotion || Math.abs(to - from) < 2) {
+    window.scrollTo(0, to);
+    return;
+  }
+  const start = performance.now();
+  requestAnimationFrame(function step(now) {
+    const t = clamp01((now - start) / 420);
+    const eased = 1 - (1 - t) ** 3;
+    window.scrollTo(0, from + (to - from) * eased);
+    if (t < 1 && dateLocked) requestAnimationFrame(step);
+  });
+}
+
 function lockDate() {
   if (revealed || dateLocked) return;
   dateLocked = true;
-  date.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-  // Let that scroll finish before freezing the page, or it would stop halfway.
-  setTimeout(() => {
-    if (dateLocked) root.classList.add('is-locked');
-  }, reduceMotion ? 0 : 500);
+  // Freeze first: a flick can carry the heart off screen before any scrolling of ours lands.
+  root.classList.add('is-locked');
+  alignDate();
 }
 
 function unlockDate() {
@@ -726,10 +742,24 @@ function unlockDate() {
   root.classList.remove('is-locked');
 }
 
+// If the view shifts while it is held (a rotation, the browser's toolbars), bring it back.
+window.addEventListener('resize', () => {
+  if (dateLocked) alignDate();
+});
+
 const dateWatcher = new IntersectionObserver(([entry]) => {
   if (entry.isIntersecting) lockDate();
-}, { threshold: 0.7 });
+}, { threshold: 0.25 });
 dateWatcher.observe(date);
+
+// A fast flick can carry the screen past before the observer has anything to report, so also take
+// hold whenever the section is across the middle of the screen.
+window.addEventListener('scroll', () => {
+  if (revealed || dateLocked) return;
+  const { top, bottom } = date.getBoundingClientRect();
+  const middle = window.innerHeight / 2;
+  if (top <= middle && bottom >= middle) lockDate();
+}, { passive: true });
 
 // Party popper: a burst of gold and green pieces shot up from the bottom edge.
 const POPPER_COLORS = ['#c9a45c', '#e3c98f', '#a8813f', '#8c967b', '#28514a', '#4f7a6c', '#f1e9da'];
