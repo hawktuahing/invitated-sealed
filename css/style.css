@@ -240,6 +240,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .envelope { max-width: none; height: 100lvh; }
 }
 
+/* Until the paper and the wax have loaded, the envelope is a plain sheet: the flaps are cut apart
+   at the crack, so showing them early would let the cover glare through the gap. */
+.envelope.is-loading { background: var(--paper); }
+.envelope.is-loading .envelope__stage,
+.envelope.is-loading .envelope__open { visibility: hidden; }
+
 /* Darkens the cover while the envelope lies over it; lifts as the envelope slides away. */
 .envelope__shade {
   position: absolute;

@@ -50,7 +50,7 @@ const T = {
   lift: 380, // the top flap starts to open
 };
 const LIFT_DURATION = 1500;
-const SLIDE_DURATION = 1150;
+const SLIDE_DURATION = 1900;
 const SLIDE_LATEST = T.lift + LIFT_DURATION + 900; // slide by then even if a corner of the flap still shows
 
 // Crease lines measured off the photo, in percent of its 479.5×852 box. The top flap is cut into
@@ -257,6 +257,14 @@ envelopeStage.append(envelopeBody);
 
 const topFlap = buildTopFlap(TOP_FLAP);
 
+// Show it only once the paper and the wax are both in: half-loaded, the gap at the crack shows
+// straight through to the cover.
+Promise.all([PAPER_SRC, SEAL_SRC].map((src) => {
+  const img = new Image();
+  img.src = src;
+  return img.decode().catch(() => {});
+})).then(() => envelope.classList.remove('is-loading'));
+
 // The seal lies over both flaps: the upper half rides the top flap's tip (and may stick out past
 // its edge), the lower half stays on the bottom flap, lifted clear of the tip it overlaps.
 const sealUpper = makeSealHalf('upper', 1.6);
@@ -385,16 +393,18 @@ function topFlapGone() {
 // The glued body slides away down the screen, fading as it goes, letting the invitation in from above.
 function slideBodyAway() {
   envelope.classList.add('is-sliding');
+  // Dissolving along the way, mostly done before it reaches the bottom of the screen.
   play(envelopeBody, [
     { opacity: 1 },
-    { opacity: 1, offset: 0.2 },
+    { opacity: 0.75, offset: 0.3 },
+    { opacity: 0.12, offset: 0.75 },
     { opacity: 0 },
-  ], { duration: SLIDE_DURATION, easing: 'ease-in', fill: 'forwards' });
+  ], { duration: SLIDE_DURATION, easing: 'linear', fill: 'forwards' });
   play(envelope.querySelector('.envelope__shade'), [{ opacity: 0.45 }, { opacity: 0 }], {
     duration: SLIDE_DURATION, easing: 'ease-out', fill: 'forwards',
   });
   return play(envelopeBody, [{ transform: 'translateY(0)' }, { transform: 'translateY(104%)' }], {
-    duration: SLIDE_DURATION, easing: 'cubic-bezier(0.55, 0, 0.35, 1)', fill: 'forwards',
+    duration: SLIDE_DURATION, easing: 'cubic-bezier(0.45, 0.05, 0.25, 1)', fill: 'forwards',
   }).finished;
 }
 
