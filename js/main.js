@@ -1,4 +1,8 @@
 const root = document.documentElement;
+
+// A reload always starts over at the sealed envelope: don't let the browser restore the old scroll position.
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+window.scrollTo(0, 0);
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
 
