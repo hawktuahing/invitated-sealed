@@ -811,7 +811,8 @@ if (reduceMotion) {
     requestAnimationFrame(renderVeil);
   };
   const veilClip = createScrubber(veil, queueVeil);
-  const programSteps = [programStage.querySelector('.program__title'), ...programStage.querySelectorAll('.program__item')];
+  // The title is there from the start, like the vine; only the times come in one by one.
+  const programSteps = [...programStage.querySelectorAll('.program__item')];
 
   function renderVeil() {
     veilQueued = false;
@@ -828,12 +829,12 @@ if (reduceMotion) {
       const shown = smoothstep(i * 0.16, i * 0.16 + 0.22, reveal);
       const lift = ((1 - shown) * 18).toFixed(1);
       step.style.opacity = shown.toFixed(3);
-      step.style.transform = step.classList.contains('program__title')
-        ? `translate(-50%, ${lift}px)`
-        : `translateY(${lift}px)`;
+      step.style.transform = `translateY(${lift}px)`;
     });
 
-    // The veil's last frame is all black, i.e. fully see-through: once there, stop compositing it.
+    // Its last frames are black, i.e. see-through under screen blending, but not to the last digit:
+    // fade the veil out over the tail so dropping it doesn't darken the screen in one step.
+    veil.style.opacity = (1 - smoothstep(0.85, 1, parted)).toFixed(3);
     veil.style.visibility = parted >= 1 ? 'hidden' : '';
     veilClip.seek(parted * (veil.duration || 7));
   }
