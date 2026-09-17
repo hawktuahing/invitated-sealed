@@ -793,8 +793,11 @@ function firePopper() {
   requestAnimationFrame(frame);
 }
 
-// Program veil: while the programme is pinned, scrolling parts the veil frame by frame; scrolling
-// back up closes it again.
+// Program: while it is pinned, scrolling first parts the veil frame by frame, then brings the title
+// and the four times in one after another; scrolling back up undoes both. The vine down the middle
+// stays through all of it. Scroll distances in svh, as in .program-track's --veil and --reveal.
+const PROGRAM_VEIL = 150;
+const PROGRAM_REVEAL = 130;
 const programTrack = document.getElementById('program');
 const programStage = programTrack.querySelector('.program');
 const veil = programTrack.querySelector('.program__veil');
@@ -808,14 +811,29 @@ if (reduceMotion) {
     requestAnimationFrame(renderVeil);
   };
   const veilClip = createScrubber(veil, queueVeil);
+  const programSteps = [programStage.querySelector('.program__title'), ...programStage.querySelectorAll('.program__item')];
 
   function renderVeil() {
     veilQueued = false;
     const stageHeight = programStage.offsetHeight;
     const pinnedTop = Math.min(0, window.innerHeight - stageHeight); // same as .program's sticky top
     const track = programTrack.offsetHeight - stageHeight;
-    const parted = track > 0 ? clamp01((pinnedTop - programTrack.getBoundingClientRect().top) / track) : 1;
-    // Its last frame is all black, i.e. fully see-through: once there, stop compositing it.
+    const scrolled = track > 0 ? clamp01((pinnedTop - programTrack.getBoundingClientRect().top) / track) : 1;
+    const veilShare = PROGRAM_VEIL / (PROGRAM_VEIL + PROGRAM_REVEAL);
+    const parted = clamp01(scrolled / veilShare);
+
+    // With the veil gone, each line rises into place in turn over the rest of the track.
+    const reveal = clamp01((scrolled - veilShare) / (1 - veilShare));
+    programSteps.forEach((step, i) => {
+      const shown = smoothstep(i * 0.16, i * 0.16 + 0.22, reveal);
+      const lift = ((1 - shown) * 18).toFixed(1);
+      step.style.opacity = shown.toFixed(3);
+      step.style.transform = step.classList.contains('program__title')
+        ? `translate(-50%, ${lift}px)`
+        : `translateY(${lift}px)`;
+    });
+
+    // The veil's last frame is all black, i.e. fully see-through: once there, stop compositing it.
     veil.style.visibility = parted >= 1 ? 'hidden' : '';
     veilClip.seek(parted * (veil.duration || 7));
   }
