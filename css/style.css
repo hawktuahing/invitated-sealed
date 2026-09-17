@@ -65,7 +65,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* On a phone the page fills the screen edge to edge instead of the 393px column of the mock. */
 @media (max-width: 600px) {
-  :root { --full-h: max(640px, 100svh); }
+  /* The height actually visible right now, whatever Safari's toolbars are doing; svh assumes they
+     are all expanded, which left a strip of the next screen showing under a full-screen one. */
+  :root { --full-h: max(640px, 100dvh); }
   .app { max-width: none; }
 }
 
@@ -205,12 +207,21 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* ---------- 1. Envelope ---------- */
 /* Sits on top of the cover until it has opened and slid away. */
 .envelope {
-  position: absolute;
+  /* Fixed to the screen rather than the page: scrolling is locked while it is up, and this way it
+     covers the screen whatever height the browser reports for it. */
+  position: fixed;
   z-index: 5;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  width: 100%;
+  max-width: var(--screen-w);
+  height: var(--full-h);
+  transform: translateX(-50%);
   container-type: size;
+}
+@media (max-width: 600px) {
+  /* The largest the screen gets, so no browser toolbar state leaves a gap below it. */
+  .envelope { max-width: none; height: 100lvh; }
 }
 
 /* Darkens the cover while the envelope lies over it; lifts as the envelope slides away. */
@@ -516,7 +527,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* Pinned; on a screen shorter than the programme it pins with its bottom edge in view. */
 .program {
   position: sticky;
-  top: min(0px, 100svh - var(--program-h));
+  top: min(0px, 100dvh - var(--program-h));
   height: var(--program-h);
   background: var(--green);
   color: var(--cream);
