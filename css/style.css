@@ -504,7 +504,20 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 
 /* ---------- 5. Program ---------- */
+/* The programme screen plus the scroll the veil parts over. Keep PROGRAM_VEIL in main.js in step. */
+.program-track {
+  --veil: 150svh;
+  /* At least the mock's height, and the whole screen on a taller phone so the veil covers it all. */
+  --program-h: max(var(--screen-h), var(--full-h));
+  position: relative;
+  height: calc(var(--program-h) + var(--veil));
+  background: var(--green);
+}
+/* Pinned; on a screen shorter than the programme it pins with its bottom edge in view. */
 .program {
+  position: sticky;
+  top: min(0px, 100svh - var(--program-h));
+  height: var(--program-h);
   background: var(--green);
   color: var(--cream);
 }
