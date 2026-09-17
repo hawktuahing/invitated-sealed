@@ -545,7 +545,9 @@ function renderJourney() {
   const motion = clamp01((at - CLIP_FROM) / (CLIP_MOTION_END - CLIP_FROM));
   const freeze = clamp01((at - CLIP_MOTION_END) / (JOURNEY_MOTION + JOURNEY_FREEZE - CLIP_MOTION_END));
 
-  const namesOut = smoothstep(0, 26, at);
+  // The names hold while the doors open and only clear as the camera reaches the doorway
+  // (clip seconds 3.0 → 4.3, mapped onto the track).
+  const namesOut = smoothstep(100, 135, at);
   coverCard.style.opacity = 1 - namesOut;
   coverCard.style.transform = `translateY(${(-24 * namesOut).toFixed(1)}px)`;
   coverHint.style.opacity = 1 - smoothstep(0, 13, at);
