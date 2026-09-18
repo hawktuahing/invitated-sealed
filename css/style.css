@@ -193,6 +193,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .sound img { transition: filter 0.35s ease; }
 
+.sound[aria-pressed="false"] img { opacity: 0.45; }
+
 /* Over the cream screens white type disappears, so the bar flips to ink. */
 .topbar.is-light { background: rgba(226, 217, 200, 0.6); color: var(--ink); }
 .topbar.is-light .sound { border-color: rgba(23, 60, 53, 0.2); }

@@ -554,6 +554,7 @@ renderJourney();
 // iOS only fetches and seeks a video after it has played from a user gesture: tapping the
 // envelope is that gesture, so play and pause at once, invisibly, on the first frame.
 envelope.querySelector('.envelope__open').addEventListener('click', () => {
+  startMusic();
   journeyVideo.play().then(() => {
     journeyVideo.pause();
     journeyVideo.currentTime = 0;
@@ -771,10 +772,47 @@ if (reduceMotion) {
   }, { threshold: 0.5 }).observe(veil.parentElement);
 }
 
-// Music toggle: tracks state only until a track is chosen.
+// Music: browsers only allow sound after a gesture, so it starts with the tap that opens the
+// envelope and loops from there; the header button turns it off and on.
+const music = document.querySelector('.music');
 const sound = document.querySelector('.sound');
+const MUSIC_VOLUME = 0.55;
+
+function fadeMusic(to, ms) {
+  const from = music.volume;
+  const start = performance.now();
+  return new Promise((done) => {
+    requestAnimationFrame(function step(now) {
+      const t = ms > 0 ? clamp01((now - start) / ms) : 1;
+      music.volume = from + (to - from) * t;
+      if (t < 1) requestAnimationFrame(step);
+      else done();
+    });
+  });
+}
+
+function playMusic(fade) {
+  return music.play().then(() => {
+    sound.setAttribute('aria-pressed', 'true');
+    return fadeMusic(MUSIC_VOLUME, fade);
+  }, () => {
+    sound.setAttribute('aria-pressed', 'false'); // refused (low power mode, say): show it as off
+  });
+}
+
+function startMusic() {
+  music.volume = 0;
+  playMusic(1400);
+}
+
 sound.addEventListener('click', () => {
-  sound.setAttribute('aria-pressed', String(sound.getAttribute('aria-pressed') !== 'true'));
+  if (music.paused) {
+    music.volume = 0;
+    playMusic(400);
+  } else {
+    sound.setAttribute('aria-pressed', 'false');
+    fadeMusic(0, 300).then(() => music.pause());
+  }
 });
 
 // RSVP: intentionally goes nowhere until the client's backend is connected.
