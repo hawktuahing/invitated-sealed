@@ -887,6 +887,21 @@ sound.addEventListener('click', () => {
   }
 });
 
+// A handful of blocks lift into place the first time they are scrolled to. They are only hidden
+// once this has run, so a page without it still shows everything.
+const rising = [...document.querySelectorAll('.rise')];
+if (!reduceMotion && rising.length) {
+  root.classList.add('is-animated');
+  const risen = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.classList.add('is-in');
+      risen.unobserve(entry.target);
+    }
+  }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+  rising.forEach((block) => risen.observe(block));
+}
+
 // RSVP: intentionally goes nowhere until the client's backend is connected.
 document.querySelector('.rsvp__form').addEventListener('submit', (event) => {
   event.preventDefault();

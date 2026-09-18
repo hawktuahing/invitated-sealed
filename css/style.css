@@ -69,6 +69,17 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .app { max-width: none; }
 }
 
+/* A few blocks lift into place the first time they are scrolled to, so the flat screens aren't
+   dead still. `translate` rather than `transform`, because most of these are centred with
+   translateX(-50%) and the two properties compose instead of overwriting each other. Nothing is
+   hidden unless main.js has said it will bring them back. */
+.is-animated .rise { opacity: 0; translate: 0 16px; }
+.is-animated .rise.is-in {
+  opacity: 1;
+  translate: none;
+  transition: opacity 0.7s ease var(--in, 0s), translate 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) var(--in, 0s);
+}
+
 /* ---------- Type ---------- */
 .t-script { font-family: var(--font-script); font-size: 56px; line-height: 60px; letter-spacing: -0.02em; }
 .t-time   { font-size: 36px; line-height: 36px; letter-spacing: -0.02em; }
@@ -201,6 +212,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .topbar.is-light .sound img { filter: brightness(0) opacity(0.8); }
 
 @media (prefers-reduced-motion: reduce) {
+  .scroll-hint img { animation: none; }
   .topbar, .sound, .sound img { transition: none; }
 }
 
@@ -396,7 +408,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   text-decoration: none;
   white-space: nowrap;
 }
-.scroll-hint img { width: 52px; height: 32px; }
+.scroll-hint img { width: 52px; height: 32px; animation: nudge 2.6s ease-in-out infinite; }
+@keyframes nudge {
+  0%, 62%, 100% { transform: translateY(0); }
+  31% { transform: translateY(5px); }
+}
 
 .welcome__card { width: 266px; padding: 24px; opacity: 0; }
 .welcome__title { color: var(--cream); line-height: 50px; white-space: nowrap; }
