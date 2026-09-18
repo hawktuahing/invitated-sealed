@@ -336,14 +336,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 
 /* ---------- 2–3. Cover → welcome ---------- */
-/* The track is the pinned screen plus the scroll the clip plays over: its motion, then its closing
-   freeze frame, which holds on "Dear guest" for a swipe or two. Keep JOURNEY_* in main.js in step. */
+/* The track is the pinned screen plus the scroll the clip plays over: --clip carries it from its
+   first frame to its last, one to one, and --hold keeps that last frame up for a swipe or two while
+   "Dear guest" is read. Keep JOURNEY_* in main.js in step. */
 .journey {
   --stage-h: var(--full-h);
-  --motion: 260svh;
-  --freeze: 100svh;
+  --clip: 285svh;
+  --hold: 95svh;
   position: relative;
-  height: calc(var(--stage-h) + var(--motion) + var(--freeze));
+  height: calc(var(--stage-h) + var(--clip) + var(--hold));
   background: #2e2f27;
 }
 .journey__stage {
@@ -365,7 +366,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .journey__end {
   position: absolute;
   left: 0;
-  top: calc(var(--motion) + 20svh);
+  top: calc(var(--clip) + 20svh);
   height: var(--stage-h);
   pointer-events: none;
 }

@@ -449,7 +449,8 @@ function openEnvelope() {
 envelope.querySelector('.envelope__open').addEventListener('click', openEnvelope, { once: true });
 
 // Cover → welcome: how far the pinned screen has been scrolled drives the doors → alley clip frame by
-// frame. The names fade out as it starts, "Dear guest" fades in once it has landed on the alley.
+// frame — straight through its own timeline, no part of it stretched or held back. The names fade out
+// as it starts, "Dear guest" fades in as it lands on its last frame.
 const journey = document.getElementById('cover');
 const journeyStage = journey.querySelector('.journey__stage');
 const journeyVideo = journey.querySelector('.journey__video');
@@ -459,13 +460,9 @@ const coverCard = journey.querySelector('.cover__card');
 const coverHint = journey.querySelector('.scroll-hint');
 const welcomeCard = journey.querySelector('.welcome__card');
 
-// Scroll distances in svh, as in .journey's --motion and --freeze.
-const JOURNEY_MOTION = 260;
-const JOURNEY_FREEZE = 100;
-const CLIP_FROM = 21; // scrolled before the doors start to move, as the names fade out
-const CLIP_MOTION_END = 234; // where the camera has arrived at the alley
-// Where the clip's own motion stops and its closing freeze frame begins (measured in the edit).
-const CLIP_FREEZE_AT = 8.03;
+// Scroll distances in svh, as in .journey's --clip and --hold.
+const JOURNEY_CLIP = 285; // the clip runs first frame to last across this much scroll
+const JOURNEY_HOLD = 95; // and its last frame stays up over this much more
 const clamp01 = (x) => Math.min(Math.max(x, 0), 1);
 const smoothstep = (from, to, x) => {
   const t = clamp01((x - from) / (to - from));
@@ -504,25 +501,23 @@ function renderJourney() {
   journeyQueued = false;
   const track = journey.offsetHeight - journeyStage.offsetHeight;
   const scrolled = track > 0 ? clamp01(-journey.getBoundingClientRect().top / track) : 0;
-  const at = scrolled * (JOURNEY_MOTION + JOURNEY_FREEZE); // svh scrolled into the track
-  const motion = clamp01((at - CLIP_FROM) / (CLIP_MOTION_END - CLIP_FROM));
-  const freeze = clamp01((at - CLIP_MOTION_END) / (JOURNEY_MOTION + JOURNEY_FREEZE - CLIP_MOTION_END));
+  const at = scrolled * (JOURNEY_CLIP + JOURNEY_HOLD); // svh scrolled into the track
+  const played = clamp01(at / JOURNEY_CLIP); // the clip's own timeline, straight off the scroll
 
   const namesOut = smoothstep(0, 26, at);
   coverCard.style.opacity = 1 - namesOut;
   coverCard.style.transform = `translateY(${(-24 * namesOut).toFixed(1)}px)`;
   coverHint.style.opacity = 1 - smoothstep(0, 13, at);
-  // "Dear guest" arrives with the freeze frame and stays through it.
-  const welcomeIn = smoothstep(CLIP_MOTION_END, CLIP_MOTION_END + 20, at);
+  // "Dear guest" arrives as the clip lands on its last frame and stays for the hold.
+  const welcomeIn = smoothstep(JOURNEY_CLIP - 30, JOURNEY_CLIP + 10, at);
   welcomeCard.style.opacity = welcomeIn;
   welcomeCard.style.transform = `translateY(${(16 * (1 - welcomeIn)).toFixed(1)}px)`;
   // The dimming lifts while the doors open and the camera travels, and returns under the text.
-  journeyShade.style.opacity = 1 - 0.7 * Math.sin(Math.PI * motion);
+  journeyShade.style.opacity = 1 - 0.7 * Math.sin(Math.PI * played);
   // If the clip can't be shown, cross-fade between its first and last frames instead.
-  journeyLast.style.opacity = clipReady ? 0 : smoothstep(0.3, 0.7, motion);
+  journeyLast.style.opacity = clipReady ? 0 : smoothstep(0.3, 0.7, played);
 
-  const duration = journeyVideo.duration || CLIP_FREEZE_AT;
-  clipTarget = motion < 1 ? motion * CLIP_FREEZE_AT : CLIP_FREEZE_AT + freeze * Math.max(duration - CLIP_FREEZE_AT, 0);
+  clipTarget = played * (journeyVideo.duration || 0);
   seekClip();
 }
 
