@@ -661,6 +661,8 @@ if (heartImg.complete && heartImg.naturalWidth) {
   setupScratch();
 } else {
   heartImg.addEventListener('load', setupScratch, { once: true });
+  // Without a heart there is nothing to rub away, so don't wall the page off behind it.
+  heartImg.addEventListener('error', () => revealDate(), { once: true });
 }
 
 scratch.addEventListener('pointerdown', (event) => {
@@ -689,6 +691,27 @@ scratch.addEventListener('keydown', (event) => {
   event.preventDefault();
   revealDate();
 });
+
+// The screen doesn't just pin, it stops the page there: until the heart is rubbed away the scroll
+// can't carry on past the point where it pins, so a fling can't skim the date and there is no
+// momentum left to swallow the first touch on the heart. Scrolling back up is left alone.
+let dateStop = null;
+const forgetDateStop = () => { dateStop = null; };
+window.addEventListener('resize', forgetDateStop);
+window.addEventListener('orientationchange', forgetDateStop);
+
+function holdDate() {
+  if (revealed) return;
+  if (dateStop === null) {
+    // Where the sticky screen comes to rest: its own top, less the offset it pins at (0 or negative).
+    const pinnedAt = parseFloat(getComputedStyle(date).top) || 0;
+    dateStop = Math.round(dateTrack.getBoundingClientRect().top + window.scrollY - pinnedAt);
+  }
+  // 'instant', because the page is set to scroll smoothly and this must not animate.
+  if (window.scrollY > dateStop) window.scrollTo({ top: dateStop, left: 0, behavior: 'instant' });
+}
+
+window.addEventListener('scroll', holdDate, { passive: true });
 
 // Party popper: a burst of gold and green pieces shot up from the bottom edge.
 const POPPER_COLORS = ['#c9a45c', '#e3c98f', '#a8813f', '#8c967b', '#28514a', '#4f7a6c', '#f1e9da'];
