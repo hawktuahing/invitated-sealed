@@ -573,7 +573,8 @@ envelope.querySelector('.envelope__open').addEventListener('click', () => {
 }, { once: true });
 
 // Scratch card: wiping the heart away reveals the date, and once it is empty a party popper fires from below.
-const date = document.getElementById('date');
+const dateTrack = document.getElementById('date');
+const date = dateTrack.querySelector('.date'); // the pinned screen, not the track it is pinned over
 const heart = date.querySelector('.date__heart');
 const heartImg = heart.querySelector('img');
 const scratch = heart.querySelector('.date__scratch');

@@ -74,38 +74,41 @@
       <span class="journey__end" id="welcome"></span>
     </section>
 
-    <!-- 4. Wedding date -->
-    <section class="screen date" id="date" data-tone="light">
-      <img class="date__frame" src="assets/img/date-frame.png" alt="" loading="lazy">
-      <img class="date__confetti" src="assets/img/date-confetti.png" alt="" loading="lazy">
+    <!-- 4. Wedding date: pinned while the heart is there to be scratched, so the screen stays put
+         long enough to find it and rub it away. -->
+    <section class="date-track" id="date">
+      <div class="screen date" data-tone="light">
+        <img class="date__frame" src="assets/img/date-frame.png" alt="" loading="lazy">
+        <img class="date__confetti" src="assets/img/date-confetti.png" alt="" loading="lazy">
 
-      <p class="t-time date__hint">Scratch<br>to reveal</p>
+        <p class="t-time date__hint">Scratch<br>to reveal</p>
 
-      <header class="heading date__heading">
-        <p class="t-body">Wedding date</p>
-        <h2 class="t-script">When?</h2>
-      </header>
+        <header class="heading date__heading">
+          <p class="t-body">Wedding date</p>
+          <h2 class="t-script">When?</h2>
+        </header>
 
-      <div class="date__heart">
-        <img src="assets/img/date-heart.png" alt="" loading="lazy">
-        <canvas class="date__scratch" tabindex="0" role="button" aria-label="Scratch the heart to reveal the date"></canvas>
+        <div class="date__heart">
+          <img src="assets/img/date-heart.png" alt="" loading="lazy">
+          <canvas class="date__scratch" tabindex="0" role="button" aria-label="Scratch the heart to reveal the date"></canvas>
+        </div>
+
+        <div class="date__when">
+          <p class="t-lead">October 16, 2026</p>
+          <p class="t-body">Friday<br>15:00</p>
+        </div>
+
+        <a class="btn date__calendar" href="#">
+          <img src="assets/icons/calendar.svg" alt="" width="20" height="20">
+          Calendar
+        </a>
+
+        <div class="date__outline" aria-hidden="true">
+          <img src="assets/img/date-outline.png" alt="" loading="lazy">
+        </div>
+
+        <canvas class="date__burst" aria-hidden="true"></canvas>
       </div>
-
-      <div class="date__when">
-        <p class="t-lead">October 16, 2026</p>
-        <p class="t-body">Friday<br>15:00</p>
-      </div>
-
-      <a class="btn date__calendar" href="#">
-        <img src="assets/icons/calendar.svg" alt="" width="20" height="20">
-        Calendar
-      </a>
-
-      <div class="date__outline" aria-hidden="true">
-        <img src="assets/img/date-outline.png" alt="" loading="lazy">
-      </div>
-
-      <canvas class="date__burst" aria-hidden="true"></canvas>
     </section>
 
     <!-- 5. Program: pinned while the veil over it parts with the scroll (and closes back on the way up),

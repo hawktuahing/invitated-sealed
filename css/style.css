@@ -402,7 +402,24 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .welcome__title { color: var(--cream); line-height: 50px; white-space: nowrap; }
 
 /* ---------- 4. Wedding date ---------- */
-.date { background: var(--cream); }
+/* The date screen plus the scroll it holds still for, so there is time to notice the heart and rub
+   it away before the page moves on. Nothing here is scrubbed — the track is pure dwell. */
+.date-track {
+  --hold: 150svh;
+  /* At least the mock's height, and the whole screen on a taller phone so the cream covers it all. */
+  --date-h: max(var(--screen-h), var(--full-h));
+  position: relative;
+  height: calc(var(--date-h) + var(--hold));
+  background: var(--cream);
+}
+/* Pinned; on a screen shorter than the mock it pins with its bottom edge in view, since the date,
+   the heart and the button all sit in the lower half. */
+.date {
+  position: sticky;
+  top: min(0px, 100svh - var(--date-h));
+  height: var(--date-h);
+  background: var(--cream);
+}
 
 .date__frame,
 .date__confetti {
