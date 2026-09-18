@@ -257,6 +257,14 @@ envelopeStage.append(envelopeBody);
 
 const topFlap = buildTopFlap(TOP_FLAP);
 
+// Show it only once the paper and the wax are both in: half-loaded, the gap at the crack shows
+// straight through to the cover.
+Promise.all([PAPER_SRC, SEAL_SRC].map((src) => {
+  const img = new Image();
+  img.src = src;
+  return img.decode().catch(() => {});
+})).then(() => envelope.classList.remove('is-loading'));
+
 // The seal lies over both flaps: the upper half rides the top flap's tip (and may stick out past
 // its edge), the lower half stays on the bottom flap, lifted clear of the tip it overlaps.
 const sealUpper = makeSealHalf('upper', 1.6);
