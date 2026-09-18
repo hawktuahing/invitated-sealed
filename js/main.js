@@ -481,33 +481,51 @@ const smoothstep = (from, to, x) => {
   return t * t * (3 - 2 * t);
 };
 
-// The clip may have loaded before this script ran, in which case 'loadeddata' has already fired.
-let clipReady = journeyVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
-let clipTarget = 0; // seconds into the clip, from the scroll position
-let clipShown = 0; // seconds, eased toward the target so the scrub stays smooth
-let clipSeeking = false;
-let journeyQueued = false;
+// Scrubs a video to whatever time the page asks for: eases toward it and seeks one step at a time,
+// since queueing seeks while the decoder is busy makes the scrub lag behind the finger.
+function createScrubber(video, onReadyChange) {
+  // The video may have loaded before this script ran, in which case 'loadeddata' has already fired.
+  let ready = video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+  let target = 0;
+  let shown = 0;
+  let running = false;
 
-function seekClip() {
-  if (clipSeeking) return;
-  clipSeeking = true;
-  requestAnimationFrame(function step() {
-    const duration = journeyVideo.duration;
-    if (!clipReady || !duration) {
-      clipSeeking = false;
+  function step() {
+    const duration = video.duration;
+    if (!ready || !duration) {
+      running = false;
       return;
     }
-    const target = Math.min(clipTarget, duration - 0.05);
-    const gap = target - clipShown;
-    clipShown = reduceMotion || Math.abs(gap) < 0.02 ? target : clipShown + gap * 0.25;
-    // One seek at a time: queueing more while the decoder is busy makes the scrub lag behind.
-    if (!journeyVideo.seeking && Math.abs(journeyVideo.currentTime - clipShown) > 0.5 / 30) {
-      journeyVideo.currentTime = clipShown;
-    }
-    if (clipShown !== target || journeyVideo.seeking) requestAnimationFrame(step);
-    else clipSeeking = false;
+    const goal = Math.min(target, duration - 0.05);
+    const gap = goal - shown;
+    shown = reduceMotion || Math.abs(gap) < 0.02 ? goal : shown + gap * 0.25;
+    if (!video.seeking && Math.abs(video.currentTime - shown) > 0.5 / 30) video.currentTime = shown;
+    if (shown !== goal || video.seeking) requestAnimationFrame(step);
+    else running = false;
+  }
+
+  video.addEventListener('loadeddata', () => {
+    ready = true;
+    onReadyChange();
   });
+  video.addEventListener('error', () => {
+    ready = false;
+    onReadyChange();
+  });
+
+  return {
+    get ready() { return ready; },
+    seek(seconds) {
+      target = seconds;
+      if (running) return;
+      running = true;
+      requestAnimationFrame(step);
+    },
+  };
 }
+
+let journeyQueued = false;
+const journeyClip = createScrubber(journeyVideo, () => queueJourney());
 
 function renderJourney() {
   journeyQueued = false;
@@ -527,10 +545,9 @@ function renderJourney() {
   // The dimming lifts while the doors open and the camera travels, and returns under the text.
   journeyShade.style.opacity = 1 - 0.7 * Math.sin(Math.PI * played);
   // If the clip can't be shown, cross-fade between its first and last frames instead.
-  journeyLast.style.opacity = clipReady ? 0 : smoothstep(0.3, 0.7, played);
+  journeyLast.style.opacity = journeyClip.ready ? 0 : smoothstep(0.3, 0.7, played);
 
-  clipTarget = played * (journeyVideo.duration || 0);
-  seekClip();
+  journeyClip.seek(played * (journeyVideo.duration || 0));
 }
 
 function queueJourney() {
@@ -539,26 +556,20 @@ function queueJourney() {
   requestAnimationFrame(renderJourney);
 }
 
-journeyVideo.addEventListener('loadeddata', () => {
-  clipReady = true;
-  queueJourney();
-});
-journeyVideo.addEventListener('error', () => {
-  clipReady = false;
-  queueJourney();
-});
 window.addEventListener('scroll', queueJourney, { passive: true });
 window.addEventListener('resize', queueJourney);
 renderJourney();
 
 // iOS only fetches and seeks a video after it has played from a user gesture: tapping the
-// envelope is that gesture, so play and pause at once, invisibly, on the first frame.
+// envelope is that gesture, so play and pause each scrubbed video at once, invisibly, on its first frame.
 envelope.querySelector('.envelope__open').addEventListener('click', () => {
   startMusic();
-  journeyVideo.play().then(() => {
-    journeyVideo.pause();
-    journeyVideo.currentTime = 0;
-  }, () => {});
+  document.querySelectorAll('.journey__video, .program__veil').forEach((video) => {
+    video.play().then(() => {
+      video.pause();
+      video.currentTime = 0;
+    }, () => {});
+  });
 }, { once: true });
 
 // Scratch card: wiping the heart away reveals the date, and once it is empty a party popper fires from below.
@@ -752,24 +763,61 @@ function firePopper() {
   requestAnimationFrame(frame);
 }
 
-// Program veil: loads as the screen approaches, parts once when half of it is in view, then goes away.
-const veil = document.querySelector('.program__veil');
+// Program: while it is pinned, scrolling first parts the veil frame by frame, then brings the four
+// times in one after another; scrolling back up undoes both. The vine down the middle and the title
+// stay through all of it. Scroll distances in svh, as in .program-track's --veil and --reveal.
+const PROGRAM_VEIL = 150;
+const PROGRAM_REVEAL = 130;
+const programTrack = document.getElementById('program');
+const programStage = programTrack.querySelector('.program');
+const veil = programTrack.querySelector('.program__veil');
 if (reduceMotion) {
   veil.hidden = true;
 } else {
+  let veilQueued = false;
+  const queueVeil = () => {
+    if (veilQueued) return;
+    veilQueued = true;
+    requestAnimationFrame(renderVeil);
+  };
+  const veilClip = createScrubber(veil, queueVeil);
+  // The title is there from the start, like the vine; only the times come in one by one.
+  const programSteps = [...programStage.querySelectorAll('.program__item')];
+
+  function renderVeil() {
+    veilQueued = false;
+    const stageHeight = programStage.offsetHeight;
+    const pinnedTop = Math.min(0, window.innerHeight - stageHeight); // same as .program's sticky top
+    const track = programTrack.offsetHeight - stageHeight;
+    const scrolled = track > 0 ? clamp01((pinnedTop - programTrack.getBoundingClientRect().top) / track) : 1;
+    const veilShare = PROGRAM_VEIL / (PROGRAM_VEIL + PROGRAM_REVEAL);
+    const parted = clamp01(scrolled / veilShare);
+
+    // With the veil gone, each time rises into place in turn over the rest of the track.
+    const reveal = clamp01((scrolled - veilShare) / (1 - veilShare));
+    programSteps.forEach((step, i) => {
+      const shown = smoothstep(i * 0.16, i * 0.16 + 0.22, reveal);
+      step.style.opacity = shown.toFixed(3);
+      step.style.transform = `translateY(${((1 - shown) * 18).toFixed(1)}px)`;
+    });
+
+    // Its last frames are black, i.e. see-through under screen blending, but not to the last digit:
+    // fade the veil out over the tail so dropping it doesn't darken the screen in one step.
+    veil.style.opacity = (1 - smoothstep(0.85, 1, parted)).toFixed(3);
+    veil.style.visibility = parted >= 1 ? 'hidden' : '';
+    veilClip.seek(parted * (veil.duration || 7));
+  }
+
+  // Fetch it as the programme approaches, so it is ready to scrub when it arrives.
   new IntersectionObserver(([entry], observer) => {
     if (!entry.isIntersecting) return;
     observer.disconnect();
     veil.preload = 'auto';
-  }, { rootMargin: '100% 0px' }).observe(veil.parentElement);
+  }, { rootMargin: '100% 0px' }).observe(programTrack);
 
-  new IntersectionObserver(([entry], observer) => {
-    if (!entry.isIntersecting) return;
-    observer.disconnect();
-    veil.addEventListener('ended', () => { veil.hidden = true; }, { once: true });
-    veil.playbackRate = 1 / slowmo;
-    veil.play().catch(() => { veil.hidden = true; });
-  }, { threshold: 0.5 }).observe(veil.parentElement);
+  window.addEventListener('scroll', queueVeil, { passive: true });
+  window.addEventListener('resize', queueVeil);
+  renderVeil();
 }
 
 // Music: browsers only allow sound after a gesture, so it starts with the tap that opens the

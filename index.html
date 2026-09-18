@@ -108,44 +108,47 @@
       <canvas class="date__burst" aria-hidden="true"></canvas>
     </section>
 
-    <!-- 5. Program -->
-    <section class="screen program" id="program">
-      <h2 class="t-script program__title">Program</h2>
-      <img class="program__vine" src="assets/img/program-vine.png" alt="" loading="lazy">
+    <!-- 5. Program: pinned while the veil over it parts with the scroll (and closes back on the way up),
+         then its times come in one after another. -->
+    <section class="program-track" id="program">
+      <div class="screen program">
+        <h2 class="t-script program__title">Program</h2>
+        <img class="program__vine" src="assets/img/program-vine.png" alt="" loading="lazy">
 
-      <div aria-hidden="true">
-        <span class="program__dot" style="--y: 310px"><img src="assets/decor/timeline-dot.png" alt=""></span>
-        <span class="program__dot" style="--y: 418px"><img src="assets/decor/timeline-dot.png" alt=""></span>
-        <span class="program__dot" style="--y: 538px"><img src="assets/decor/timeline-dot.png" alt=""></span>
-        <span class="program__dot" style="--y: 659px"><img src="assets/decor/timeline-dot.png" alt=""></span>
+        <div aria-hidden="true">
+          <span class="program__dot" style="--y: 310px"><img src="assets/decor/timeline-dot.png" alt=""></span>
+          <span class="program__dot" style="--y: 418px"><img src="assets/decor/timeline-dot.png" alt=""></span>
+          <span class="program__dot" style="--y: 538px"><img src="assets/decor/timeline-dot.png" alt=""></span>
+          <span class="program__dot" style="--y: 659px"><img src="assets/decor/timeline-dot.png" alt=""></span>
+        </div>
+
+        <ol class="program__list">
+          <li class="program__item program__item--right" style="--y: 280px">
+            <p class="t-time">3 PM</p>
+            <p class="t-body">Guest arrival</p>
+            <img class="divider" src="assets/decor/divider.svg" alt="">
+          </li>
+          <li class="program__item program__item--left" style="--y: 388px">
+            <p class="t-time">4 PM</p>
+            <p class="t-body">Photoshoot</p>
+            <img class="divider" src="assets/decor/divider.svg" alt="">
+          </li>
+          <li class="program__item program__item--right program__item--wide" style="--y: 496px">
+            <p class="t-time">5 PM</p>
+            <p class="t-body">The start of<br>the celebration</p>
+            <img class="divider" src="assets/decor/divider.svg" alt="">
+          </li>
+          <li class="program__item program__item--left" style="--y: 628px">
+            <p class="t-time">6 PM</p>
+            <p class="t-body">Wedding</p>
+            <img class="divider" src="assets/decor/divider.svg" alt="">
+          </li>
+        </ol>
+
+        <!-- White veil that parts to free the centre; its black ground drops out in screen blending. -->
+        <video class="program__veil" src="assets/vids/veil.mp4" poster="assets/vids/veil-poster.jpg"
+               muted playsinline preload="none" disablepictureinpicture aria-hidden="true"></video>
       </div>
-
-      <ol class="program__list">
-        <li class="program__item program__item--right" style="--y: 280px">
-          <p class="t-time">3 PM</p>
-          <p class="t-body">Guest arrival</p>
-          <img class="divider" src="assets/decor/divider.svg" alt="">
-        </li>
-        <li class="program__item program__item--left" style="--y: 388px">
-          <p class="t-time">4 PM</p>
-          <p class="t-body">Photoshoot</p>
-          <img class="divider" src="assets/decor/divider.svg" alt="">
-        </li>
-        <li class="program__item program__item--right program__item--wide" style="--y: 496px">
-          <p class="t-time">5 PM</p>
-          <p class="t-body">The start of<br>the celebration</p>
-          <img class="divider" src="assets/decor/divider.svg" alt="">
-        </li>
-        <li class="program__item program__item--left" style="--y: 628px">
-          <p class="t-time">6 PM</p>
-          <p class="t-body">Wedding</p>
-          <img class="divider" src="assets/decor/divider.svg" alt="">
-        </li>
-      </ol>
-
-      <!-- White veil that parts to free the centre; its black ground drops out in screen blending. -->
-      <video class="program__veil" src="assets/vids/veil.mp4" poster="assets/vids/veil-poster.jpg"
-             muted playsinline preload="none" disablepictureinpicture aria-hidden="true"></video>
     </section>
 
     <!-- 6. Location -->
